@@ -368,9 +368,12 @@ async function syncHistoryFromCloud() {
 
 async function syncDatabaseFromCloud() {
     const syncBtn = document.getElementById('btn-sync');
+    const originalText = syncBtn ? syncBtn.textContent : '';
+
     if (syncBtn) {
-        syncBtn.textContent = 'Синхронизация...';
+        syncBtn.textContent = '⏳ Синхронизация...';
         syncBtn.disabled = true;
+        syncBtn.style.opacity = '0.7';
     }
 
     try {
@@ -398,11 +401,19 @@ async function syncDatabaseFromCloud() {
     }
 
     // Also sync History at the same time
-    await syncHistoryFromCloud();
+    try {
+        await syncHistoryFromCloud();
+    } catch (e) {
+        console.error("History sync wrapper failed", e);
+    }
 
     if (syncBtn) {
-        syncBtn.textContent = 'Синхронизировать 🔄';
-        syncBtn.disabled = false;
+        syncBtn.textContent = '✅ Синхронизировано';
+        syncBtn.style.opacity = '1';
+        setTimeout(() => {
+            syncBtn.textContent = 'Синхронизировать 🔄';
+            syncBtn.disabled = false;
+        }, 2000);
     }
 }
 
