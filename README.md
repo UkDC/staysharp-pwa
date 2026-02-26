@@ -4,7 +4,7 @@
 
 Рассчитывает оптимальное положение USH (Universal Support Height) на основе геометрии станка и желаемого угла заточки.
 
-[![Deploy](https://img.shields.io/badge/Live-ukdc.github.io%2Fstaysharp--v2-FF6B4A?style=for-the-badge)](https://ukdc.github.io/staysharp-v2/)
+[![Deploy](https://img.shields.io/badge/Live-ukdc.github.io%2Fstaysharp--pwa-FF6B4A?style=for-the-badge)](https://ukdc.github.io/staysharp-pwa/)
 
 ---
 
@@ -20,7 +20,7 @@
 
 ## 📱 Установка на iPhone
 
-1. Открой **https://ukdc.github.io/staysharp-v2/** в Safari
+1. Открой **https://ukdc.github.io/staysharp-pwa/** в Safari
 2. Нажми **⬆ Поделиться** → **На экран «Домой»**
 3. Готово — приложение работает как нативное и доступно офлайн
 

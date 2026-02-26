@@ -1,7 +1,7 @@
 # Project: StaySharp (v2)
 
 ## Current Status
-We are developing a Progressive Web Application (PWA) for knife sharpening calculation and management (StaySharp_v2). It replicates and improves upon a previous Django-based version.
+We are developing a Progressive Web Application (PWA) for knife sharpening calculation and management (StaySharp_PWA). It replicates and improves upon a previous Django-based version.
 
 ## Recent Work
 We just completed a major overhaul of the Predictive Analytics ("Подбор Угла") feature:
