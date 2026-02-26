@@ -378,13 +378,15 @@ async function syncHistoryFromCloud() {
 
 async function syncDatabaseFromCloud() {
     const syncBtn = document.getElementById('btn-sync');
-    const originalText = syncBtn ? syncBtn.textContent : '';
+    const syncDbBtn = document.getElementById('btn-db-sync');
 
-    if (syncBtn) {
-        syncBtn.textContent = '⏳ Синхронизация...';
-        syncBtn.disabled = true;
-        syncBtn.style.opacity = '0.7';
-    }
+    [syncBtn, syncDbBtn].forEach(btn => {
+        if (btn) {
+            btn.textContent = '⏳ Синхронизация...';
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+        }
+    });
 
     try {
         const res = await fetch(GOOGLE_SCRIPT_URL + '?sheet=Database&_t=' + Date.now(), { cache: 'no-store' });
@@ -420,14 +422,16 @@ async function syncDatabaseFromCloud() {
         console.error("History sync wrapper failed", e);
     }
 
-    if (syncBtn) {
-        syncBtn.textContent = '✅ Синхронизировано';
-        syncBtn.style.opacity = '1';
-        setTimeout(() => {
-            syncBtn.textContent = 'Синхронизировать 🔄';
-            syncBtn.disabled = false;
-        }, 2000);
-    }
+    [syncBtn, syncDbBtn].forEach(btn => {
+        if (btn) {
+            btn.textContent = '✅ Синхронизировано';
+            btn.style.opacity = '1';
+            setTimeout(() => {
+                btn.textContent = 'Синхронизировать 🔄';
+                btn.disabled = false;
+            }, 2000);
+        }
+    });
 }
 
 // ====== LOCALSTORAGE LOGIC ======
@@ -957,6 +961,9 @@ document.getElementById('btn-export-csv').addEventListener('click', () => {
 // ====== DATABASE (knives.js & Cloud) ======
 const btnSync = document.getElementById('btn-sync');
 if (btnSync) btnSync.addEventListener('click', syncDatabaseFromCloud);
+
+const btnDbSync = document.getElementById('btn-db-sync');
+if (btnDbSync) btnDbSync.addEventListener('click', syncDatabaseFromCloud);
 
 // Auto-sync on startup
 document.addEventListener('DOMContentLoaded', () => {
