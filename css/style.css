@@ -1374,15 +1374,15 @@ input[type="number"] {
   }
 
   label {
-    font-size: 18px;
-    margin-bottom: 4px;
-    letter-spacing: 0.2px;
+    font-size: 13px;
+    margin-bottom: 3px;
+    letter-spacing: 0.3px;
   }
 
   input[type="number"],
   input[type="text"] {
     padding: 12px 14px;
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 600;
   }
 
