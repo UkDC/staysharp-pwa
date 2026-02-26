@@ -544,7 +544,18 @@
     <script src="js/app.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js');
+            navigator.serviceWorker.register('./sw.js').then(reg => {
+                // Check for updates every time the app is opened
+                reg.update();
+                // When a new SW is found and activated, reload to get fresh assets
+                let refreshing = false;
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (!refreshing) {
+                        refreshing = true;
+                        window.location.reload();
+                    }
+                });
+            });
         }
     </script>
 </body>
