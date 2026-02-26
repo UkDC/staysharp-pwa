@@ -396,7 +396,7 @@ async function syncDatabaseFromCloud() {
                     series: k.Series || k.series || "",
                     steel: k.Steel || k.steel || "",
                     carbon: k["C, %"] || k.carbon || "",
-                    crmov: k["CrMoV, %"] || k.crmov || "",
+                    CrMoV: k["CrMoV, %"] || k.crmov || "",
                     length: k.Length || k.length || "",
                     width: k.Width || k.width || "",
                     angle: k.Grinding || k.angle || "",
