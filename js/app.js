@@ -344,7 +344,15 @@ async function pushToCloud(record, sheetName = "History", action = "add") {
 }
 
 // Fetches History from cloud and overwrites local
-async function syncHistoryFromCloud() {
+async function syncHistoryFromCloud(showUI = true) {
+    const syncBtn = document.getElementById('btn-sync');
+    if (showUI && syncBtn) {
+        syncBtn.textContent = '⏳ Синхронизация...';
+        syncBtn.disabled = true;
+        syncBtn.style.opacity = '0.7';
+    }
+
+    let success = false;
     try {
         const res = await fetch(`${GOOGLE_SCRIPT_URL}?token=${API_TOKEN}&sheet=History&_t=${Date.now()}`, { cache: 'no-store' });
         if (res.ok) {
@@ -369,26 +377,34 @@ async function syncHistoryFromCloud() {
                 // Filter out empty rows often found in gsheets
                 const validHistory = historyData.filter(item => item.id || item.brand);
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(validHistory));
-                renderHistory();
+                if (typeof renderHistory === 'function') renderHistory();
+                success = true;
             }
         }
     } catch (e) {
         console.error("History sync failed", e);
     }
+
+    if (showUI && syncBtn) {
+        syncBtn.textContent = success ? '✅ Синхронизировано' : '❌ Ошибка';
+        syncBtn.style.opacity = '1';
+        setTimeout(() => {
+            syncBtn.textContent = 'Синхронизировать 🔄';
+            syncBtn.disabled = false;
+        }, 2000);
+    }
 }
 
-async function syncDatabaseFromCloud() {
-    const syncBtn = document.getElementById('btn-sync');
+async function syncDatabaseFromCloud(isAutoSync = false) {
     const syncDbBtn = document.getElementById('btn-db-sync');
 
-    [syncBtn, syncDbBtn].forEach(btn => {
-        if (btn) {
-            btn.textContent = '⏳ Синхронизация...';
-            btn.disabled = true;
-            btn.style.opacity = '0.7';
-        }
-    });
+    if (syncDbBtn) {
+        syncDbBtn.textContent = '⏳ Синхронизация...';
+        syncDbBtn.disabled = true;
+        syncDbBtn.style.opacity = '0.7';
+    }
 
+    let success = false;
     try {
         const res = await fetch(`${GOOGLE_SCRIPT_URL}?token=${API_TOKEN}&sheet=Database&_t=${Date.now()}`, { cache: 'no-store' });
         if (res.ok) {
@@ -409,6 +425,7 @@ async function syncDatabaseFromCloud() {
                 }));
                 localStorage.setItem('staysharp_database', JSON.stringify(window.allKnives));
                 renderDatabase();
+                success = true;
             } else if (Array.isArray(data) && data.length === 0) {
                 console.log("Database tab is empty in cloud.");
             }
@@ -417,23 +434,23 @@ async function syncDatabaseFromCloud() {
         console.error("Database sync failed", e);
     }
 
-    // Also sync History at the same time
-    try {
-        await syncHistoryFromCloud();
-    } catch (e) {
-        console.error("History sync wrapper failed", e);
+    // Also sync History during auto-sync
+    if (isAutoSync) {
+        try {
+            await syncHistoryFromCloud(false); // don't affect button UI during auto-sync if viewed
+        } catch (e) {
+            console.error("History sync wrapper failed", e);
+        }
     }
 
-    [syncBtn, syncDbBtn].forEach(btn => {
-        if (btn) {
-            btn.textContent = '✅ Синхронизировано';
-            btn.style.opacity = '1';
-            setTimeout(() => {
-                btn.textContent = 'Синхронизировать 🔄';
-                btn.disabled = false;
-            }, 2000);
-        }
-    });
+    if (syncDbBtn) {
+        syncDbBtn.textContent = success ? '✅ Синхронизировано' : '❌ Ошибка';
+        syncDbBtn.style.opacity = '1';
+        setTimeout(() => {
+            syncDbBtn.textContent = 'Синхронизировать 🔄';
+            syncDbBtn.disabled = false;
+        }, 2000);
+    }
 }
 
 // ====== LOCALSTORAGE LOGIC ======
@@ -927,14 +944,14 @@ renderHistory(); // load on start
 
 // ====== DATABASE (knives.js & Cloud) ======
 const btnSync = document.getElementById('btn-sync');
-if (btnSync) btnSync.addEventListener('click', syncDatabaseFromCloud);
+if (btnSync) btnSync.addEventListener('click', () => syncHistoryFromCloud(true));
 
 const btnDbSync = document.getElementById('btn-db-sync');
-if (btnDbSync) btnDbSync.addEventListener('click', syncDatabaseFromCloud);
+if (btnDbSync) btnDbSync.addEventListener('click', () => syncDatabaseFromCloud(false));
 
 // Auto-sync on startup
 document.addEventListener('DOMContentLoaded', () => {
-    syncDatabaseFromCloud();
+    syncDatabaseFromCloud(true);
 });
 
 function renderDatabase(filter = "") {
