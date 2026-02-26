@@ -1382,7 +1382,7 @@ input[type="number"] {
   input[type="number"],
   input[type="text"] {
     padding: 12px;
-    font-size: 30px;
+    font-size: 26px;
     font-weight: 600;
   }
 
@@ -1484,7 +1484,7 @@ input[type="number"] {
   input[type="number"],
   input[type="text"] {
     padding: 10px;
-    font-size: 30px;
+    font-size: 26px;
     font-weight: 600;
   }
 }
