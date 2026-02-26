@@ -415,7 +415,8 @@
                         <h1>Справочник Рекомендуемых Углов</h1>
                     </div>
                     <div style="display: flex; gap: 10px;">
-                        <button id="btn-db-sync" class="btn-secondary">Синхронизировать 🔄</button>
+                        <button id="btn-db-sync" class="btn-secondary"
+                            onclick="syncDatabaseFromCloud()">Синхронизировать 🔄</button>
                     </div>
                 </header>
 
@@ -543,8 +544,8 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/knives.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/knives.js?v=110"></script>
+    <script src="js/app.js?v=110"></script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then(reg => {
