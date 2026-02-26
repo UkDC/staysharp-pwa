@@ -319,16 +319,50 @@ calculateLive();
 // ====== CLOUD SYNC ======
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzaKD0e3RrcBfnb7fFpDEEbvgd_CIDzABkymBQzCgSZn6Z66ZLw-R9sXz0m9YrIbFPw/exec';
 
-async function pushToCloud(record, sheetName = "History") {
+async function pushToCloud(record, sheetName = "History", action = "add") {
     try {
         await fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ sheet: sheetName, record: record })
+            body: JSON.stringify({ sheet: sheetName, action: action, record: record })
         });
     } catch (e) {
         console.error("Cloud push failed", e);
+    }
+}
+
+// Fetches History from cloud and overwrites local
+async function syncHistoryFromCloud() {
+    try {
+        const res = await fetch(GOOGLE_SCRIPT_URL + '?sheet=History');
+        if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data) && !data.error) {
+                // We got data, overwrite local storage
+                const historyData = data.map(k => ({
+                    id: k.id || k.ID || "",
+                    date: k.Date || k.date || "",
+                    brand: k.Brand || k.brand || "",
+                    series: k.Series || k.series || "",
+                    steel: k.Steel || k.steel || "",
+                    carbon: k["C, %"] || k.carbon || "",
+                    crmov: k["CrMoV, %"] || k.crmov || "",
+                    length: k.Length || k.length || "",
+                    width: k.Width || k.width || "",
+                    angle: k["Sharp. angle (double)"] || k.angle || "",
+                    honingAdd: k["Honing add"] || k.honingAdd || "",
+                    bess: k["BESS g"] || k.bess || "",
+                    comments: k.Comments || k.comments || ""
+                }));
+                // Filter out empty rows often found in gsheets
+                const validHistory = historyData.filter(item => item.id || item.brand);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(validHistory));
+                renderHistory();
+            }
+        }
+    } catch (e) {
+        console.error("History sync failed", e);
     }
 }
 
@@ -363,6 +397,9 @@ async function syncDatabaseFromCloud() {
         console.error("Database sync failed", e);
     }
 
+    // Also sync History at the same time
+    await syncHistoryFromCloud();
+
     if (syncBtn) {
         syncBtn.textContent = 'Синхронизировать 🔄';
         syncBtn.disabled = false;
@@ -378,12 +415,15 @@ function getHistory() {
 }
 
 function saveToHistory(record) {
+    if (!record.id) {
+        record.id = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+    }
     const history = getHistory();
     history.push(record);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
     renderHistory();
-    // Also push to Google Sheets Cloud Backup
-    pushToCloud(record, "History");
+    // Push to Google Sheets Cloud Backup
+    pushToCloud(record, "History", "add");
 }
 
 let editIndex = -1;
@@ -392,9 +432,13 @@ let editIndex = -1;
 window.deleteRecord = function (index) {
     if (confirm("Вы уверены, что хотите удалить эту запись?")) {
         const history = getHistory();
+        const recordId = history[index].id;
         history.splice(index, 1);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
         renderHistory();
+        if (recordId) {
+            pushToCloud({ id: recordId }, "History", "delete");
+        }
     }
 };
 
@@ -770,6 +814,7 @@ document.getElementById('btn-save-record').addEventListener('click', () => {
     if (!brand) return alert("Поле 'Бренд' обязательно для заполнения!");
 
     const record = {
+        id: editIndex >= 0 ? getHistory()[editIndex].id : (Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5)),
         date: editIndex >= 0 ? getHistory()[editIndex].date : new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }),
         brand: brand,
         series: document.getElementById('record-series').value.trim(),
@@ -790,6 +835,7 @@ document.getElementById('btn-save-record').addEventListener('click', () => {
         history[editIndex] = record;
         localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
         renderHistory();
+        pushToCloud(record, "History", "update");
 
         editIndex = -1;
         document.getElementById('btn-save-record').textContent = 'Сохранить в журнал';
@@ -854,10 +900,11 @@ document.getElementById('btn-export-csv').addEventListener('click', () => {
     const history = getHistory();
     if (history.length === 0) return alert("Нет данных для экспорта");
 
-    let csvContent = "data:text/csv;charset=utf-8,Date,Brand,Series,Steel,C %,CrMoV %,Length,Width,Sharp. angle (double),Honing add,BESS g,Comments\n";
+    let csvContent = "data:text/csv;charset=utf-8,id,Date,Brand,Series,Steel,C %,CrMoV %,Length,Width,Sharp. angle (double),Honing add,BESS g,Comments\n";
 
     history.forEach(row => {
         const rowData = [
+            `"${row.id || ''}"`,
             row.date,
             `"${row.brand || ''}"`,
             `"${row.series || ''}"`,
