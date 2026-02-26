@@ -1,6 +1,6 @@
-// StaySharp Service Worker v2.1
-// Change CACHE_VERSION on every deploy to trigger update
-const CACHE_VERSION = '2.1.0';
+// StaySharp Service Worker
+// Auto-versioned: timestamp is injected by deploy script
+const CACHE_VERSION = '1772084495';
 const CACHE_NAME = `staysharp-${CACHE_VERSION}`;
 const ASSETS = [
     './',
@@ -20,15 +20,13 @@ const ASSETS = [
     './images/schema_left.png'
 ];
 
-// Install: cache all assets, activate immediately
 self.addEventListener('install', (e) => {
     e.waitUntil(
         caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
     );
-    self.skipWaiting(); // Activate new SW immediately
+    self.skipWaiting();
 });
 
-// Activate: delete old caches, claim all clients
 self.addEventListener('activate', (e) => {
     e.waitUntil(
         caches.keys().then(keys =>
@@ -36,18 +34,17 @@ self.addEventListener('activate', (e) => {
                 keys.filter(k => k.startsWith('staysharp-') && k !== CACHE_NAME)
                     .map(k => caches.delete(k))
             )
-        ).then(() => self.clients.claim()) // Take control immediately
+        ).then(() => self.clients.claim())
     );
 });
 
-// Fetch: network-first for HTML, cache-first for assets
 self.addEventListener('fetch', (e) => {
     if (e.request.method !== 'GET') return;
-
     const url = new URL(e.request.url);
 
-    // HTML pages: try network first (always get latest)
-    if (e.request.mode === 'navigate' || url.pathname.endsWith('.html')) {
+    // HTML/CSS/JS: network-first (always fresh when online)
+    if (e.request.mode === 'navigate' || url.pathname.endsWith('.html') ||
+        url.pathname.endsWith('.css') || url.pathname.endsWith('.js')) {
         e.respondWith(
             fetch(e.request)
                 .then(response => {
@@ -60,24 +57,7 @@ self.addEventListener('fetch', (e) => {
         return;
     }
 
-    // CSS/JS: stale-while-revalidate (serve cached, update in background)
-    if (url.pathname.endsWith('.css') || url.pathname.endsWith('.js')) {
-        e.respondWith(
-            caches.match(e.request).then(cached => {
-                const fetchPromise = fetch(e.request).then(response => {
-                    if (response.ok) {
-                        const clone = response.clone();
-                        caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
-                    }
-                    return response;
-                });
-                return cached || fetchPromise;
-            })
-        );
-        return;
-    }
-
-    // Everything else (images, fonts): cache-first
+    // Images/fonts: cache-first (they rarely change)
     e.respondWith(
         caches.match(e.request).then(cached => {
             if (cached) return cached;
