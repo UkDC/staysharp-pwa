@@ -351,7 +351,9 @@
                         <h1>Журнал Заточек</h1>
                     </div>
                     <div style="display: flex; gap: 10px;">
-                        <button id="btn-sync" class="btn-secondary">Синхронизировать 🔄</button>
+                        <button id="btn-sync" class="btn-secondary"
+                            onclick="try { syncHistoryFromCloud(true); } catch(e) { alert('Для применения обновления закройте (смахните) приложение из недавних и откройте заново!'); location.reload(true); }">Синхронизировать
+                            🔄</button>
                     </div>
                 </header>
 
@@ -527,8 +529,8 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/knives.js?v=115"></script>
-    <script src="js/app.js?v=115"></script>
+    <script src="js/knives.js?v=116"></script>
+    <script src="js/app.js?v=116"></script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then(reg => {

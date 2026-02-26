@@ -383,6 +383,7 @@ async function syncHistoryFromCloud(showUI = true) {
         }
     } catch (e) {
         console.error("History sync failed", e);
+        if (showUI) alert("Ошибка сети History: " + e.message);
     }
 
     if (showUI && syncBtn) {
@@ -432,6 +433,7 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
         }
     } catch (e) {
         console.error("Database sync failed", e);
+        if (!isAutoSync) alert("Ошибка сети DB: " + e.message);
     }
 
     // Also sync History during auto-sync
@@ -943,11 +945,7 @@ function renderHistory() {
 renderHistory(); // load on start
 
 // ====== DATABASE (knives.js & Cloud) ======
-const btnSync = document.getElementById('btn-sync');
-if (btnSync) btnSync.addEventListener('click', () => syncHistoryFromCloud(true));
-
-const btnDbSync = document.getElementById('btn-db-sync');
-if (btnDbSync) btnDbSync.addEventListener('click', () => syncDatabaseFromCloud(false));
+// (Click listeners are attached directly in HTML via onclick="")
 
 // Auto-sync on startup
 document.addEventListener('DOMContentLoaded', () => {
