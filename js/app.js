@@ -316,6 +316,59 @@ inputs.forEach(input => {
 // Initial calculate
 calculateLive();
 
+// ====== CLOUD SYNC ======
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzaKD0e3RrcBfnb7fFpDEEbvgd_CIDzABkymBQzCgSZn6Z66ZLw-R9sXz0m9YrIbFPw/exec';
+
+async function pushToCloud(record, sheetName = "History") {
+    try {
+        await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ sheet: sheetName, record: record })
+        });
+    } catch (e) {
+        console.error("Cloud push failed", e);
+    }
+}
+
+async function syncDatabaseFromCloud() {
+    const syncBtn = document.getElementById('btn-sync');
+    if (syncBtn) {
+        syncBtn.textContent = 'Синхронизация...';
+        syncBtn.disabled = true;
+    }
+
+    try {
+        const res = await fetch(GOOGLE_SCRIPT_URL + '?sheet=Database');
+        if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data) && !data.error && data.length > 0) {
+                window.allKnives = data.map(k => ({
+                    brand: k.Brand || k.brand || "",
+                    series: k.Series || k.series || "",
+                    steel: k.Steel || k.steel || "",
+                    carbon: k["C, %"] || k.carbon || "",
+                    crmov: k["CrMoV, %"] || k.crmov || "",
+                    length: k.Length || k.length || "",
+                    width: k.Width || k.width || "",
+                    grinding: k.Grinding || k.grinding || "",
+                    honing: k.Honing || k.honing || "",
+                    comments: k.Comments || k.comments || ""
+                }));
+                renderDatabase();
+            }
+        }
+    } catch (e) {
+        console.error("Database sync failed", e);
+    }
+
+    if (syncBtn) {
+        syncBtn.textContent = 'Синхронизировать 🔄';
+        syncBtn.disabled = false;
+    }
+}
+
 // ====== LOCALSTORAGE LOGIC ======
 const STORAGE_KEY = 'staysharp_history';
 
@@ -329,6 +382,8 @@ function saveToHistory(record) {
     history.push(record);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
     renderHistory();
+    // Also push to Google Sheets Cloud Backup
+    pushToCloud(record, "History");
 }
 
 let editIndex = -1;
@@ -828,7 +883,15 @@ document.getElementById('btn-export-csv').addEventListener('click', () => {
     document.body.removeChild(link);
 });
 
-// ====== DATABASE (knives.js) ======
+// ====== DATABASE (knives.js & Cloud) ======
+const btnSync = document.getElementById('btn-sync');
+if (btnSync) btnSync.addEventListener('click', syncDatabaseFromCloud);
+
+// Auto-sync on startup
+document.addEventListener('DOMContentLoaded', () => {
+    syncDatabaseFromCloud();
+});
+
 function renderDatabase(filter = "") {
     const tbody = document.getElementById('knives-table-body');
     tbody.innerHTML = '';
