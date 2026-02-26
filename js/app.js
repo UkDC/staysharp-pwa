@@ -843,7 +843,7 @@ document.getElementById('btn-save-record').addEventListener('click', () => {
     if (editIndex >= 0) {
         // Update existing record
         const history = getHistory();
-        history[editIndex] = record;
+        history[editIndex] = record; console.log("Updating local, record is:", record);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
         renderHistory();
         pushToCloud(record, "History", "update");
