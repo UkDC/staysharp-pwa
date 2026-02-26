@@ -1470,11 +1470,11 @@ input[type="number"] {
   }
 
   .section-header h1 {
-    font-size: 16px;
+    font-size: 22px;
   }
 
   .metric-value {
-    font-size: 36px;
+    font-size: 44px;
   }
 
   .panel {
@@ -1483,8 +1483,9 @@ input[type="number"] {
 
   input[type="number"],
   input[type="text"] {
-    padding: 6px 8px;
-    font-size: 13px;
+    padding: 10px;
+    font-size: 48px;
+    font-weight: 600;
   }
 }
 
