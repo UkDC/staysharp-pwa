@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#06080d">
+    <meta name="description"
+        content="StaySharp Hub — калькулятор углов заточки и хонингования для точильных станков Tormek">
+    <title>StaySharp Hub</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- Sidebar Toggle (Hamburger) -->
+    <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </button>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay hidden" id="sidebar-overlay"></div>
+
+    <!-- Sidebar Navigation (outside app-container for correct z-index stacking) -->
+    <nav class="sidebar collapsed" id="sidebar">
+        <div class="logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="url(#logoGrad)" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <defs>
+                    <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#e3523a" />
+                        <stop offset="100%" stop-color="#ff6b4a" />
+                    </linearGradient>
+                </defs>
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            <h2>StaySharp</h2>
+        </div>
+        <ul class="nav-links" id="nav-links">
+            <li class="active" data-target="calc-view" draggable="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="4" width="6" height="6" rx="1"></rect>
+                    <rect x="14" y="4" width="6" height="6" rx="1"></rect>
+                    <rect x="14" y="14" width="6" height="6" rx="1"></rect>
+                    <rect x="4" y="14" width="6" height="6" rx="1"></rect>
+                </svg>
+                <span>Калькулятор</span>
+                <svg class="drag-handle" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <circle cx="9" cy="6" r="1.5"></circle>
+                    <circle cx="15" cy="6" r="1.5"></circle>
+                    <circle cx="9" cy="12" r="1.5"></circle>
+                    <circle cx="15" cy="12" r="1.5"></circle>
+                    <circle cx="9" cy="18" r="1.5"></circle>
+                    <circle cx="15" cy="18" r="1.5"></circle>
+                </svg>
+            </li>
+            <li data-target="history-view" draggable="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+                <span>Журнал</span>
+                <svg class="drag-handle" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <circle cx="9" cy="6" r="1.5"></circle>
+                    <circle cx="15" cy="6" r="1.5"></circle>
+                    <circle cx="9" cy="12" r="1.5"></circle>
+                    <circle cx="15" cy="12" r="1.5"></circle>
+                    <circle cx="9" cy="18" r="1.5"></circle>
+                    <circle cx="15" cy="18" r="1.5"></circle>
+                </svg>
+            </li>
+            <li data-target="db-view" draggable="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                </svg>
+                <span>Справочник</span>
+                <svg class="drag-handle" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <circle cx="9" cy="6" r="1.5"></circle>
+                    <circle cx="15" cy="6" r="1.5"></circle>
+                    <circle cx="9" cy="12" r="1.5"></circle>
+                    <circle cx="15" cy="12" r="1.5"></circle>
+                    <circle cx="9" cy="18" r="1.5"></circle>
+                    <circle cx="15" cy="18" r="1.5"></circle>
+                </svg>
+            </li>
+            <li data-target="schemas-view" draggable="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+                <span>Схемы</span>
+                <svg class="drag-handle" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <circle cx="9" cy="6" r="1.5"></circle>
+                    <circle cx="15" cy="6" r="1.5"></circle>
+                    <circle cx="9" cy="12" r="1.5"></circle>
+                    <circle cx="15" cy="12" r="1.5"></circle>
+                    <circle cx="9" cy="18" r="1.5"></circle>
+                    <circle cx="15" cy="18" r="1.5"></circle>
+                </svg>
+            </li>
+            <li data-target="predict-view" draggable="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                        d="M2.7 10.3a2.41 2.41 0 0 0 0 3.41l7.59 7.59a2.41 2.41 0 0 0 3.41 0l7.59-7.59a2.41 2.41 0 0 0 0-3.41l-7.59-7.59a2.41 2.41 0 0 0-3.41 0Z">
+                    </path>
+                </svg>
+                <span>Подбор Угла</span>
+                <svg class="drag-handle" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <circle cx="9" cy="6" r="1.5"></circle>
+                    <circle cx="15" cy="6" r="1.5"></circle>
+                    <circle cx="9" cy="12" r="1.5"></circle>
+                    <circle cx="15" cy="12" r="1.5"></circle>
+                    <circle cx="9" cy="18" r="1.5"></circle>
+                    <circle cx="15" cy="18" r="1.5"></circle>
+                </svg>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="app-container">
+        <!-- Main Content Area -->
+        <main class="content-area">
+
+            <!-- VIEW: CALCULATOR (Default) -->
+            <section id="calc-view" class="view active">
+                <header class="section-header">
+                    <h1>Расчет Параметров Заточки</h1>
+                    <p>Динамический калькулятор установки углов для Grinding и Honing</p>
+                </header>
+
+                <div class="grid-layout">
+                    <!-- Column 1: Parameters + Result -->
+                    <div class="vertical-layout">
+                        <div class="card panel input-panel">
+                            <h3>
+                                <span class="icon-wrap">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 20V10"></path>
+                                        <path d="M18 20V4"></path>
+                                        <path d="M6 20v-4"></path>
+                                    </svg>
+                                </span>
+                                Параметры станка
+                            </h3>
+
+                            <div class="tabs group-tabs">
+                                <button class="tab-btn active" data-type="grinding">Grinding
+                                    <br><small>(Заточка)</small></button>
+                                <button class="tab-btn" data-type="honing">Honing
+                                    <br><small>(Хонингование)</small></button>
+                            </div>
+
+                            <form id="calculator-form">
+                                <!-- Common Inputs -->
+                                <div class="input-row">
+                                    <div class="input-group">
+                                        <label for="input-kj">KJ <span class="unit">(mm)</span> <button type="button"
+                                                class="info-icon" data-key="kj" title="Что такое KJ?">?</button></label>
+                                        <input type="number" id="input-kj" step="0.1" value="130">
+                                    </div>
+                                    <div class="input-group">
+                                        <label for="input-ga">GA <span class="unit">(deg)</span> <button type="button"
+                                                class="info-icon" data-key="ga" title="Что такое GA?">?</button></label>
+                                        <input type="number" id="input-ga" step="0.1" value="15">
+                                    </div>
+                                </div>
+
+                                <div class="input-group">
+                                    <label for="input-rw">RW <span class="unit">(mm)</span> <button type="button"
+                                            class="info-icon" data-key="rw" title="Что такое RW?">?</button></label>
+                                    <input type="number" id="input-rw" step="0.1" value="80">
+                                </div>
+
+                                <hr class="divider">
+
+                                <!-- Grinding specific -->
+                                <div id="grinding-group">
+                                    <div class="flex-between">
+                                        <h4>Размеры для Grinding</h4>
+                                        <button type="button" class="btn-secondary btn-sm schema-btn"
+                                            data-schema="grinding">Схема</button>
+                                    </div>
+                                    <div class="input-row" style="margin-top: 12px;">
+                                        <div class="input-group">
+                                            <label for="input-c1">C1 <span class="unit">(default)</span> <button
+                                                    type="button" class="info-icon" data-key="c1">?</button></label>
+                                            <input type="number" id="input-c1" step="0.1" value="50.0">
+                                        </div>
+                                        <div class="input-group">
+                                            <label for="input-c2">C2 <span class="unit">(default)</span> <button
+                                                    type="button" class="info-icon" data-key="c2">?</button></label>
+                                            <input type="number" id="input-c2" step="0.1" value="28.6">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Honing specific -->
+                                <div id="honing-group" class="hidden">
+                                    <div class="flex-between">
+                                        <h4>Размеры для Honing</h4>
+                                        <button type="button" class="btn-secondary btn-sm schema-btn"
+                                            data-schema="honing">Схема</button>
+                                    </div>
+                                    <div class="input-row" style="margin-top: 12px;">
+                                        <div class="input-group">
+                                            <label for="input-honing-add">Honing Add <span class="unit">(deg)</span>
+                                                <button type="button" class="info-icon"
+                                                    data-key="honing_add">?</button></label>
+                                            <input type="number" id="input-honing-add" step="0.1" value="0">
+                                        </div>
+                                        <div class="input-group">
+                                            <label for="input-fvb-s">FVB_S <span class="unit">(mm)</span> <button
+                                                    type="button" class="info-icon" data-key="fvb_s">?</button></label>
+                                            <input type="number" id="input-fvb-s" step="0.1" value="20">
+                                        </div>
+                                    </div>
+                                    <div class="input-row">
+                                        <div class="input-group">
+                                            <label for="input-c3-c4">C3_C4 <button type="button" class="info-icon"
+                                                    data-key="c3_c4">?</button></label>
+                                            <input type="number" id="input-c3-c4" step="0.1" value="128.1">
+                                        </div>
+                                        <div class="input-group">
+                                            <label for="input-c5-c6">C5_C6 <button type="button" class="info-icon"
+                                                    data-key="c5_c6">?</button></label>
+                                            <input type="number" id="input-c5-c6" step="0.1" value="51.4">
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="card panel result-panel glow">
+                            <h3>
+                                <span class="icon-wrap">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round">
+                                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                                    </svg>
+                                </span>
+                                Результат
+                            </h3>
+                            <div class="metric-container">
+                                <span class="metric-label" id="result-label">USH (Grinding)</span>
+                                <div class="metric-value" id="result-value">0.00</div>
+                                <div class="metric-unit">mm</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Save Profile -->
+                    <div class="card panel action-panel">
+                        <h3>
+                            <span class="icon-wrap">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z">
+                                    </path>
+                                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                    <polyline points="7 3 7 8 15 8"></polyline>
+                                </svg>
+                            </span>
+                            Сохранить профиль ножа
+                        </h3>
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label for="record-brand">Brand</label>
+                                <input type="text" id="record-brand">
+                            </div>
+                            <div class="input-group">
+                                <label for="record-series">Series</label>
+                                <input type="text" id="record-series">
+                            </div>
+                        </div>
+                        <div class="input-row">
+                            <div class="input-group" style="flex: 2;">
+                                <label for="record-steel">Steel</label>
+                                <input type="text" id="record-steel">
+                            </div>
+                            <div class="input-group" style="flex: 1;">
+                                <label for="record-carbon">C, %</label>
+                                <input type="number" id="record-carbon" step="0.01">
+                            </div>
+                            <div class="input-group" style="flex: 1;">
+                                <label for="record-crmov">CrMoV, %</label>
+                                <input type="number" id="record-crmov" step="0.1">
+                            </div>
+                        </div>
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label for="record-length">Length, mm</label>
+                                <input type="number" id="record-length" step="1">
+                            </div>
+                            <div class="input-group">
+                                <label for="record-width">Width, mm</label>
+                                <input type="number" id="record-width" step="1">
+                            </div>
+                        </div>
+
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label for="record-angle">Sharp. angle (double)</label>
+                                <input type="number" id="record-angle" step="0.1">
+                            </div>
+                            <div class="input-group">
+                                <label for="record-honing-add">Honing add</label>
+                                <input type="number" id="record-honing-add" step="0.1">
+                            </div>
+                        </div>
+                        <div class="input-row">
+                            <div class="input-group" style="flex: 1;">
+                                <label for="record-bess">BESS Sharpness, g</label>
+                                <input type="number" id="record-bess" step="1" title="Количество граммов по тесту BESS">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="record-comments">Comments</label>
+                            <textarea id="record-comments" rows="2"
+                                placeholder="Заметки, особенности заточки..."></textarea>
+                        </div>
+
+                        <button id="btn-save-record" class="btn-primary">
+                            Сохранить в журнал
+                        </button>
+                        <button id="btn-cancel-edit" class="btn-secondary hidden"
+                            style="width: 100%; margin-top: 10px;">
+                            Отменить редактирование
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: HISTORY -->
+            <section id="history-view" class="view hidden">
+                <header class="section-header flex-between">
+                    <div>
+                        <h1>Журнал Заточек</h1>
+                        <p>Локальная история. Данные хранятся в браузере.</p>
+                    </div>
+                    <button id="btn-export-csv" class="btn-secondary">Экспорт .CSV</button>
+                </header>
+
+                <div class="card panel">
+                    <div class="table-responsive">
+                        <table class="data-table" id="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Brand</th>
+                                    <th>Series</th>
+                                    <th>Steel</th>
+                                    <th>C, %</th>
+                                    <th>CrMoV, %</th>
+                                    <th>Length</th>
+                                    <th>Width</th>
+                                    <th>Angle</th>
+                                    <th>Honing</th>
+                                    <th>BESS</th>
+                                    <th>Comments</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="empty-history" class="empty-state hidden">
+                        <div class="empty-state-inner">
+                            <img src="img/empty_state.png" alt="Knife on whetstone" class="empty-state-img" />
+                            <h3>Журнал пуст</h3>
+                            <p>Вы ещё не сохраняли ни одной заточки. Перейдите в калькулятор и сохраните свой первый
+                                профиль.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: DATABASE -->
+            <section id="db-view" class="view hidden">
+                <header class="section-header">
+                    <h1>Справочник Рекомендуемых Углов</h1>
+                    <p>База заводских параметров и сталей. Нажмите на нужный нож, чтобы загрузить его углы в
+                        калькулятор.</p>
+                </header>
+
+                <div class="card panel">
+                    <div class="search-bar">
+                        <input type="text" id="search-knives"
+                            placeholder="Поиск по бренду или стали (например: Victorinox, 440C)...">
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Категория</th>
+                                    <th>Бренд</th>
+                                    <th>Сталь (Carbon / CrMoV)</th>
+                                    <th>Реком. Угол (GA)</th>
+                                    <th>Honing Add</th>
+                                </tr>
+                            </thead>
+                            <tbody id="knives-table-body">
+                                <!-- JS Populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: SCHEMAS -->
+            <section id="schemas-view" class="view hidden">
+                <header class="section-header">
+                    <h1>Схемы Станка</h1>
+                </header>
+
+                <div class="schemas-grid">
+                    <div class="card panel pattern-bg schema-card">
+                        <span class="schema-label">Grinding</span>
+                        <img src="images/schema_right.png" alt="Схема Grinding" class="schema-image"
+                            onclick="openModal('Схема Grinding', '<img src=\'images/schema_right.png\'>')">
+                    </div>
+                    <div class="card panel pattern-bg schema-card">
+                        <span class="schema-label">Honing</span>
+                        <img src="images/schema_left.png" alt="Схема Honing" class="schema-image"
+                            onclick="openModal('Схема Honing', '<img src=\'images/schema_left.png\'>')">
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: PREDICT -->
+            <section id="predict-view" class="view hidden">
+                <header class="section-header">
+                    <h1>Подбор Угла (Аналитика)</h1>
+                    <p>Алгоритм порекомендует оптимальный угол заточки на основе вашей базы данных.</p>
+                </header>
+
+                <div class="card panel">
+                    <p class="text-muted" style="margin-bottom: 20px;">Введите данные о ноже. Алгоритм сначала ищет
+                        точные совпадения, а затем анализирует средние значения по бренду, типу стали или химическому
+                        составу.</p>
+
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label for="predict-brand">Brand</label>
+                            <input type="text" id="predict-brand" placeholder="Например: Victorinox" list="brand-list">
+                            <datalist id="brand-list"></datalist>
+                        </div>
+                        <div class="input-group">
+                            <label for="predict-series">Series</label>
+                            <input type="text" id="predict-series" list="series-list">
+                            <datalist id="series-list"></datalist>
+                        </div>
+                    </div>
+                    <div class="input-row">
+                        <div class="input-group" style="flex: 2;">
+                            <label for="predict-steel">Steel</label>
+                            <input type="text" id="predict-steel" placeholder="Например: 440C" list="steel-list">
+                            <datalist id="steel-list"></datalist>
+                        </div>
+                        <div class="input-group" style="flex: 1;">
+                            <label for="predict-carbon">C, %</label>
+                            <input type="number" id="predict-carbon" step="0.01">
+                        </div>
+                        <div class="input-group" style="flex: 1;">
+                            <label for="predict-crmov">CrMoV, %</label>
+                            <input type="number" id="predict-crmov" step="0.1">
+                        </div>
+                    </div>
+                    <div id="prediction-out-wrap" class="hidden"
+                        style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                        <h3 style="color: var(--accent-warm); margin-bottom: 10px;">Результат:</h3>
+                        <p id="prediction-result" style="font-size: 15px; margin-bottom: 20px;"></p>
+
+                        <div class="grid-layout" style="margin-bottom: 25px;">
+                            <div class="metric-card">
+                                <div class="metric-label">Recommended Angle (double)</div>
+                                <div class="metric-value" id="predict-val-angle">0.0</div>
+                                <div class="metric-unit">градусов</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-label">Honing Add</div>
+                                <div class="metric-value" id="predict-val-honing">0.0</div>
+                                <div class="metric-unit">градусов</div>
+                            </div>
+                        </div>
+
+                        <button id="btn-predict-apply" class="btn-secondary" style="width: 100%;">
+                            Применить к станку и создать Профиль
+                        </button>
+                    </div>
+
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Interactive Modal for Glossary & Schemas -->
+    <div id="info-modal" class="modal-overlay hidden">
+        <div class="modal-content panel">
+            <button class="modal-close">&times;</button>
+            <h2 id="modal-title">Заголовок</h2>
+            <div id="modal-body" class="modal-body">
+                <!-- Text and/or image will be injected here via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/knives.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js');
+        }
+    </script>
+</body>
+
+</html>

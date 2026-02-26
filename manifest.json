@@ -1,0 +1,28 @@
+{
+  "name": "StaySharp Hub",
+  "short_name": "StaySharp",
+  "description": "Калькулятор углов заточки и хонингования",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#06080d",
+  "theme_color": "#06080d",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "img/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "img/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "img/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
