@@ -328,6 +328,7 @@ calculateLive();
 
 // ====== CLOUD SYNC ======
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzaKD0e3RrcBfnb7fFpDEEbvgd_CIDzABkymBQzCgSZn6Z66ZLw-R9sXz0m9YrIbFPw/exec';
+const API_TOKEN = 'StaySharp_Secure_Token_2026'; // Секретный токен для базовой защиты
 
 async function pushToCloud(record, sheetName = "History", action = "add") {
     try {
@@ -335,7 +336,7 @@ async function pushToCloud(record, sheetName = "History", action = "add") {
             method: 'POST',
             mode: 'no-cors',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ sheet: sheetName, action: action, record: record })
+            body: JSON.stringify({ token: API_TOKEN, sheet: sheetName, action: action, record: record })
         });
     } catch (e) {
         console.error("Cloud push failed", e);
@@ -345,7 +346,7 @@ async function pushToCloud(record, sheetName = "History", action = "add") {
 // Fetches History from cloud and overwrites local
 async function syncHistoryFromCloud() {
     try {
-        const res = await fetch(GOOGLE_SCRIPT_URL + '?sheet=History&_t=' + Date.now(), { cache: 'no-store' });
+        const res = await fetch(`${GOOGLE_SCRIPT_URL}?token=${API_TOKEN}&sheet=History&_t=${Date.now()}`, { cache: 'no-store' });
         if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data) && !data.error) {
@@ -389,7 +390,7 @@ async function syncDatabaseFromCloud() {
     });
 
     try {
-        const res = await fetch(GOOGLE_SCRIPT_URL + '?sheet=Database&_t=' + Date.now(), { cache: 'no-store' });
+        const res = await fetch(`${GOOGLE_SCRIPT_URL}?token=${API_TOKEN}&sheet=Database&_t=${Date.now()}`, { cache: 'no-store' });
         if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data) && !data.error && data.length > 0) {
