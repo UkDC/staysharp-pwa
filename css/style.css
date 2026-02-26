@@ -1376,15 +1376,15 @@ input[type="number"] {
   }
 
   label {
-    font-size: 13px;
+    font-size: 11px;
     margin-bottom: 3px;
-    letter-spacing: 0.3px;
+    letter-spacing: 0px;
   }
 
   input[type="number"],
   input[type="text"] {
-    padding: 12px;
-    font-size: 24px;
+    padding: 10px 8px;
+    font-size: 20px;
     font-weight: 600;
   }
 
