@@ -399,8 +399,8 @@ async function syncDatabaseFromCloud() {
                     crmov: k["CrMoV, %"] || k.crmov || "",
                     length: k.Length || k.length || "",
                     width: k.Width || k.width || "",
-                    grinding: k.Grinding || k.grinding || "",
-                    honing: k.Honing || k.honing || "",
+                    angle: k.Grinding || k.angle || "",
+                    honing_add: k.Honing || k.honing_add || "",
                     comments: k.Comments || k.comments || ""
                 }));
                 localStorage.setItem('staysharp_database', JSON.stringify(window.allKnives));
