@@ -335,7 +335,7 @@ async function pushToCloud(record, sheetName = "History", action = "add") {
 // Fetches History from cloud and overwrites local
 async function syncHistoryFromCloud() {
     try {
-        const res = await fetch(GOOGLE_SCRIPT_URL + '?sheet=History');
+        const res = await fetch(GOOGLE_SCRIPT_URL + '?sheet=History&_t=' + Date.now(), { cache: 'no-store' });
         if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data) && !data.error) {
@@ -377,7 +377,7 @@ async function syncDatabaseFromCloud() {
     }
 
     try {
-        const res = await fetch(GOOGLE_SCRIPT_URL + '?sheet=Database');
+        const res = await fetch(GOOGLE_SCRIPT_URL + '?sheet=Database&_t=' + Date.now(), { cache: 'no-store' });
         if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data) && !data.error && data.length > 0) {
