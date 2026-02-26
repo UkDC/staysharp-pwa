@@ -825,7 +825,7 @@ document.getElementById('btn-save-record').addEventListener('click', () => {
     if (!brand) return alert("Поле 'Бренд' обязательно для заполнения!");
 
     const record = {
-        id: editIndex >= 0 ? getHistory()[editIndex].id : (Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5)),
+        id: editIndex >= 0 ? (getHistory()[editIndex].id || (Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5))) : (Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5)),
         date: editIndex >= 0 ? getHistory()[editIndex].date : new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }),
         brand: brand,
         series: document.getElementById('record-series').value.trim(),
