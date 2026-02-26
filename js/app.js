@@ -924,41 +924,6 @@ function renderHistory() {
 
 renderHistory(); // load on start
 
-// ====== CSV EXPORT ======
-document.getElementById('btn-export-csv').addEventListener('click', () => {
-    const history = getHistory();
-    if (history.length === 0) return alert("Нет данных для экспорта");
-
-    let csvContent = "data:text/csv;charset=utf-8,id,Date,Brand,Series,Steel,C %,CrMoV %,Length,Width,Sharp. angle (double),Honing add,BESS g,Comments\n";
-
-    history.forEach(row => {
-        const rowData = [
-            `"${row.id || ''}"`,
-            row.date,
-            `"${row.brand || ''}"`,
-            `"${row.series || ''}"`,
-            `"${row.steel || ''}"`,
-            row.carbon || '',
-            row.crmov || '',
-            row.length || '',
-            row.width || '',
-            row.angle || '',
-            row.honingAdd || '',
-            row.bess || '',
-            `"${(row.comments || '').replace(/"/g, '""')}"`
-        ];
-        csvContent += rowData.join(",") + "\n";
-    });
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "StaySharp_History.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-});
-
 // ====== DATABASE (knives.js & Cloud) ======
 const btnSync = document.getElementById('btn-sync');
 if (btnSync) btnSync.addEventListener('click', syncDatabaseFromCloud);
