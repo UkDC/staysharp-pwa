@@ -1,16 +1,20 @@
-# Project: StaySharp (v2)
+# Project: StaySharp_PWA
 
 ## Current Status
-We are developing a Progressive Web Application (PWA) for knife sharpening calculation and management (StaySharp_PWA). It replicates and improves upon a previous Django-based version.
+We are developing a Progressive Web Application (PWA) for knife sharpening calculation and management (StaySharp_PWA). It leverages Vanilla JS, HTML, CSS (Glassmorphism), and LocalStorage. The app communicates with a Google Apps Script to synchronize its database and history, effectively using Google Sheets as a serverless backend.
 
-## Recent Work
-We just completed a major overhaul of the Predictive Analytics ("Подбор Угла") feature:
-1.  **Separated UI:** We moved the angle predictor out of the main calculator tab (`calc-view`) and into its own dedicated view (`predict-view`).
-2.  **Reactive Autofill:** The fields (Brand, Series, Steel, Carbon, CrMoV) now instantly react to user input via the `input` event, thanks to logic in `app.js`.
-3.  **Datalists:** `brand-list`, `series-list`, and `steel-list` datalists are populated automatically on page load based on unique values in `knives.js` to provide auto-complete suggestions.
-4.  **Constraint Solver:** An intelligent constraint solver was implemented in `triggerPrediction()` inside `app.js`. It sets the currently edited field as an "anchor", and if a conflict arises (no matching records in the database), it clears old incompatible values from other fields automatically so the user never gets stuck.
-5.  **Integration with Calculator:** After finding an angle, the user presses "Применить к станку" which navigates back to the calculator and pre-fills the data.
+## Recent Work (Completed Architecture)
+1. **Google Sheets Integration:** Created two-way synchronization for both «Журнал» (History) and «Справочник» (Database). The user can now modify the database directly from Google Sheets (PC) and pull the latest changes to their phone via the `Синхронизировать 🔄` buttons.
+2. **Cloud Backend:** Dropped local CSV exporting from the History tab since the app pushes records directly to Google Sheets via `no-cors` POST requests, and pulls them seamlessly via a GET fetch. 
+3. **Categories Support:** Extracted and parsed `Category` columns from the DB to support styling tags like `High` (green) and `Premium` (red).
+4. **Predictive Analytics ("Подбор Угла"):** An intelligent constraint solver automatically suggests grind angles/honing additions based on Brand, Series, Steel, Carbon, or CrMoV content.
+5. **PWA & Cache Management:** A custom `./deploy.sh` script automatically bumps cache versions (`?v=XXXXX` in `index.html`) to aggressively bust iOS Safari caches. No manual reloading is needed.
 
-## Next Steps / Technical Debt
-- The user may want to continue testing the new auto-fill logic.
-- We might need to handle empty/missing database values more dynamically or expand `knives.js` if the user wants certain popular brands (like Victorinox or Miyabi) to have preset steels in the future.
+## Project Structure & Flow
+- The master repo changed from `staysharp-v2` to `staysharp-pwa`.
+- **`app.js`**: Contains live calculation logic, event listeners for the `Predict` solver, UI rendering for the tables, and the `fetch` synchronization logic.
+- **Google Apps Script**: Expected to accept GET with `?sheet=History` and return JSON. Expected to accept POST to append/update/delete records based on `id` in the `History` sheet.
+
+## Next Steps for the Next Session
+- Continue refining UI elements or adding new fields if the user extends the Google Sheet.
+- Address any edge cases in predictive analytics if the user introduces radically different parameters to the standard database.
