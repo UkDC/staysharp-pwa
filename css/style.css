@@ -1381,8 +1381,8 @@ input[type="number"] {
 
   input[type="number"],
   input[type="text"] {
-    padding: 12px 14px;
-    font-size: 32px;
+    padding: 14px;
+    font-size: 42px;
     font-weight: 600;
   }
 
