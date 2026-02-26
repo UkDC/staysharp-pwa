@@ -403,7 +403,8 @@ async function syncDatabaseFromCloud() {
                     width: k.Width || k.width || "",
                     angle: k.Grinding || k.angle || "",
                     honing_add: k.Honing || k.honing_add || "",
-                    comments: k.Comments || k.comments || ""
+                    comments: k.Comments || k.comments || "",
+                    category: k.Category || k.category || "custom"
                 }));
                 localStorage.setItem('staysharp_database', JSON.stringify(window.allKnives));
                 renderDatabase();
