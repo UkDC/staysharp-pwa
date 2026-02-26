@@ -1342,7 +1342,7 @@ input[type="number"] {
 
   /* Compact headers */
   .section-header {
-    margin-bottom: 8px;
+    margin-bottom: 24px;
     padding-left: 40px;
   }
 
