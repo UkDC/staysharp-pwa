@@ -900,8 +900,19 @@ window.saveRecordClick = function (e) {
 
         clearForm();
 
-        // Auto switch to History
-        document.querySelector('[data-target="history-view"]').click();
+        const btn = document.getElementById('btn-save-record');
+        const originalText = btn.textContent;
+        btn.textContent = '✅ Сохранено!';
+        btn.style.backgroundColor = 'var(--success)';
+        btn.style.borderColor = 'var(--success)';
+
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.style.backgroundColor = '';
+            btn.style.borderColor = '';
+            // Auto switch to History AFTER confirmation is shown
+            document.querySelector('[data-target="history-view"]').click();
+        }, 1000);
     } catch (err) {
         console.error("Save error:", err);
         alert("Ошибка сохранения: " + err.message);
