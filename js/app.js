@@ -671,12 +671,15 @@ window.editRecord = function (index) {
     document.querySelector('[data-target="calc-view"]').click();
 };
 
-document.getElementById('btn-cancel-edit').addEventListener('click', () => {
-    editIndex = -1;
-    document.getElementById('btn-save-record').textContent = 'Сохранить в журнал';
-    document.getElementById('btn-cancel-edit').classList.add('hidden');
-    clearForm();
-});
+const cancelEditBtn = document.getElementById('btn-cancel-edit');
+if (cancelEditBtn) {
+    cancelEditBtn.addEventListener('click', () => {
+        editIndex = -1;
+        document.getElementById('btn-save-record').textContent = 'Сохранить в журнал';
+        document.getElementById('btn-cancel-edit').classList.add('hidden');
+        clearForm();
+    });
+}
 
 function clearForm() {
     document.getElementById('record-brand').value = '';
@@ -968,10 +971,13 @@ const predictInputs = [
     'predict-carbon', 'predict-crmov'
 ];
 predictInputs.forEach(id => {
-    document.getElementById(id).addEventListener('input', triggerPrediction);
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', triggerPrediction);
 });
 
-document.getElementById('btn-predict-apply').addEventListener('click', () => {
+const predictApplyBtn = document.getElementById('btn-predict-apply');
+if (predictApplyBtn) {
+predictApplyBtn.addEventListener('click', () => {
     const pAngle = parseFloat(document.getElementById('predict-val-angle').textContent);
     const pHoning = parseFloat(document.getElementById('predict-val-honing').textContent);
 
@@ -1008,6 +1014,7 @@ document.getElementById('btn-predict-apply').addEventListener('click', () => {
     document.getElementById('prediction-result').textContent = '';
     document.getElementById('prediction-out-wrap').classList.add('hidden');
 });
+}
 
 let isSavingRecord = false;
 let lastSaveEventAt = 0;
@@ -1282,9 +1289,12 @@ function renderDatabase(filter = "") {
     });
 }
 
-document.getElementById('search-knives').addEventListener('input', (e) => {
-    renderDatabase(e.target.value);
-});
+const searchKnivesInput = document.getElementById('search-knives');
+if (searchKnivesInput) {
+    searchKnivesInput.addEventListener('input', (e) => {
+        renderDatabase(e.target.value);
+    });
+}
 
 // Render DB initially
 renderDatabase();
