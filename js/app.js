@@ -858,12 +858,33 @@ document.getElementById('btn-predict-apply').addEventListener('click', () => {
     document.getElementById('prediction-out-wrap').classList.add('hidden');
 });
 
+let isSavingRecord = false;
+
 window.saveRecordClick = function (e) {
-    console.log("saveRecordClick FIRED!", e);
-    if (e) e.preventDefault();
+    console.log("saveRecordClick FIRED!", e ? e.type : 'manual');
+    // alert("DEBUG: saveRecordClick start. Type: " + (e ? e.type : 'manual'));
+
+    if (e) {
+        if (e.type !== 'touchstart') {
+            e.preventDefault();
+        }
+        e.stopPropagation();
+    }
+
+    // Prevent double execution from buggy iOS PWA double events
+    if (isSavingRecord) {
+        console.log("Blocked duplicate save attempt");
+        return;
+    }
+
     try {
+        isSavingRecord = true;
         const brand = document.getElementById('record-brand').value.trim();
-        if (!brand) return alert("Поле 'Бренд' обязательно для заполнения!");
+        if (!brand) {
+            isSavingRecord = false;
+            alert("⚠️ Заполните поле 'Бренд'!");
+            return;
+        }
 
         const historyOpts = getHistory();
         const existingRecord = (editIndex >= 0 && historyOpts[editIndex]) ? historyOpts[editIndex] : {};
@@ -913,13 +934,21 @@ window.saveRecordClick = function (e) {
             btn.style.borderColor = '';
             // Auto switch to History AFTER confirmation is shown
             document.querySelector('[data-target="history-view"]').click();
+
+            // Allow saving again after navigation completes
+            setTimeout(() => { isSavingRecord = false; }, 500);
         }, 1000);
     } catch (err) {
         console.error("Save error:", err);
+        isSavingRecord = false;
         alert("Ошибка сохранения: " + err.message);
     }
 };
-document.getElementById('btn-save-record').addEventListener('click', window.saveRecordClick);
+
+const saveBtnObj = document.getElementById('btn-save-record');
+if (saveBtnObj) {
+    saveBtnObj.addEventListener('click', window.saveRecordClick);
+}
 
 function renderHistory() {
     const history = getHistory();
