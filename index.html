@@ -15,7 +15,7 @@
     <link rel="icon" href="/staysharp-pwa/favicon.ico">
     <link rel="shortcut icon" href="/staysharp-pwa/favicon.ico">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="css/style.css?v=1772215866">
+    <link rel="stylesheet" href="css/style.css?v=1772216389">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -544,7 +544,7 @@
 
     <!-- Scripts -->
     <script src="js/knives.js?v=124"></script>
-    <script src="js/app.js?v=1772215866"></script>
+    <script src="js/app.js?v=1772216389"></script>
     <script>
         const takeSessionFlag = (key) => {
             try {
@@ -576,7 +576,7 @@
         }
 
         if (takeSessionFlag('staysharp_show_pwa_updated_notice') && typeof showTransientNotice === 'function') {
-            showTransientNotice('Приложение обновлено.');
+            showTransientNotice('Приложение обновлено.', 'success');
         }
 
         if ('serviceWorker' in navigator) {
