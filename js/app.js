@@ -1752,7 +1752,6 @@ function resetDatabaseCacheWithDefaults() {
     const searchEl = document.getElementById('search-knives');
     renderDatabase(searchEl ? searchEl.value : "");
     populatePredictDatalists();
-    showTransientNotice('Локальный кэш справочника сброшен.');
 }
 
 async function hardRefreshApplication() {
@@ -1800,12 +1799,12 @@ function bindResetDbCacheButton() {
         const ok = confirm('Обновить локальный справочник из встроенной базы? История заточек не будет удалена.');
         if (!ok) return;
 
-        setSidebarToolButtonState(resetBtn, 'loading', 'Восстановление...');
+        setSidebarToolButtonState(resetBtn, 'loading', SIDEBAR_RESET_LABEL);
         try {
             // Small delay so the loading indicator is visible on fast devices.
             await new Promise(resolve => setTimeout(resolve, 180));
             resetDatabaseCacheWithDefaults();
-            setSidebarToolButtonState(resetBtn, 'success', 'Восстановлено');
+            setSidebarToolButtonState(resetBtn, 'success', SIDEBAR_RESET_LABEL);
             setTimeout(() => {
                 setSidebarToolButtonState(resetBtn, 'default', SIDEBAR_RESET_LABEL);
             }, 1700);
