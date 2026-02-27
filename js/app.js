@@ -1193,7 +1193,7 @@ async function syncHistoryFromCloud(showUI = true) {
             setTimeout(() => {
                 historyPullState.isSyncing = false;
                 setHistoryPullIndicatorState('hidden');
-            }, 450);
+            }, 250);
         } else {
             historyPullState.isSyncing = false;
             setHistoryPullIndicatorState('hidden');
@@ -1289,7 +1289,7 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
             setTimeout(() => {
                 dbPullState.isSyncing = false;
                 setDbPullIndicatorState('hidden');
-            }, 450);
+            }, 250);
         } else {
             dbPullState.isSyncing = false;
             setDbPullIndicatorState('hidden');
