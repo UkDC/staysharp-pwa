@@ -69,19 +69,23 @@ function showTransientNotice(message, type = 'info') {
     }, 4200);
 }
 
+function toText(value) {
+    return value === null || value === undefined ? "" : String(value);
+}
+
 function normalizeKnifeRecord(input = {}) {
     return {
-        brand: input.brand || "",
-        series: input.series || "",
-        steel: input.steel || "",
-        carbon: input.carbon ?? "",
-        CrMoV: input.CrMoV ?? input.crmov ?? "",
-        length: input.length ?? "",
-        width: input.width ?? "",
-        angle: input.angle ?? "",
-        honing_add: input.honing_add ?? "",
-        comments: input.comments || "",
-        category: input.category || "custom"
+        brand: toText(input.brand).trim(),
+        series: toText(input.series).trim(),
+        steel: toText(input.steel).trim(),
+        carbon: toText(input.carbon ?? ""),
+        CrMoV: toText(input.CrMoV ?? input.crmov ?? ""),
+        length: toText(input.length ?? ""),
+        width: toText(input.width ?? ""),
+        angle: toText(input.angle ?? ""),
+        honing_add: toText(input.honing_add ?? ""),
+        comments: toText(input.comments).trim(),
+        category: toText(input.category || "custom")
     };
 }
 
