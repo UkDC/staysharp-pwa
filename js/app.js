@@ -1719,7 +1719,7 @@ function resetDatabaseCacheWithDefaults() {
     const searchEl = document.getElementById('search-knives');
     renderDatabase(searchEl ? searchEl.value : "");
     populatePredictDatalists();
-    showTransientNotice('Справочник обновлен из встроенной базы.');
+    showTransientNotice('Локальный кэш справочника сброшен.');
 }
 
 async function hardRefreshApplication() {
