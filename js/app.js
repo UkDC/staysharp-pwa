@@ -472,11 +472,32 @@ const API_TOKEN = 'StaySharp_Secure_Token_2026'; // Секретный токе�
 
 async function pushToCloud(record, sheetName = "History", action = "add") {
     try {
+        // Use form-encoded payload to be compatible with Apps Script handlers using e.parameter.
+        const params = new URLSearchParams({
+            token: API_TOKEN,
+            sheet: sheetName,
+            action: action,
+            record: JSON.stringify(record || {}),
+            id: record?.id ? String(record.id) : '',
+            date: record?.date ? String(record.date) : '',
+            brand: record?.brand ? String(record.brand) : '',
+            series: record?.series ? String(record.series) : '',
+            steel: record?.steel ? String(record.steel) : '',
+            carbon: record?.carbon ? String(record.carbon) : '',
+            crmov: record?.crmov ? String(record.crmov) : '',
+            length: record?.length ? String(record.length) : '',
+            width: record?.width ? String(record.width) : '',
+            angle: record?.angle ? String(record.angle) : '',
+            honingAdd: record?.honingAdd ? String(record.honingAdd) : '',
+            bess: record?.bess ? String(record.bess) : '',
+            comments: record?.comments ? String(record.comments) : ''
+        });
+
         await fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ token: API_TOKEN, sheet: sheetName, action: action, record: record })
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+            body: params.toString()
         });
     } catch (e) {
         console.error("Cloud push failed", e);
