@@ -908,14 +908,7 @@ window.saveRecordClick = function (e) {
     }
 };
 
-// Also attach via JS just in case
-const btnSaveRec = document.getElementById('btn-save-record');
-if (btnSaveRec) {
-    // Remove old listeners by cloning
-    const newBtnSave = btnSaveRec.cloneNode(true);
-    btnSaveRec.parentNode.replaceChild(newBtnSave, btnSaveRec);
-    newBtnSave.addEventListener('click', window.saveRecordClick);
-}
+// (Event listener for btn-save-record is now fully bound in HTML via onclick attributes)
 
 function renderHistory() {
     const history = getHistory();
