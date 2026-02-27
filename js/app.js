@@ -1053,9 +1053,9 @@ async function syncHistoryFromCloud(showUI = true) {
     }
 }
 
-const SIDEBAR_SYNC_LABEL = 'Синхронизировать';
-const SIDEBAR_RESET_LABEL = 'Обновить справочник';
-const SIDEBAR_HARD_REFRESH_LABEL = 'Обновить приложение';
+const SIDEBAR_SYNC_LABEL = 'Загрузить из облака';
+const SIDEBAR_RESET_LABEL = 'Восстановить встроенный';
+const SIDEBAR_HARD_REFRESH_LABEL = 'Обновить PWA';
 
 function setSidebarToolButtonState(button, state, label) {
     if (!button) return;
@@ -1083,7 +1083,7 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
     const syncDbBtn = document.getElementById('btn-db-sync');
 
     if (syncDbBtn && !isAutoSync) {
-        setSidebarToolButtonState(syncDbBtn, 'loading', 'Синхронизация...');
+        setSidebarToolButtonState(syncDbBtn, 'loading', 'Загрузка...');
     }
 
     let success = false;
@@ -1127,7 +1127,7 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
     }
 
     if (syncDbBtn && !isAutoSync) {
-        setSidebarToolButtonState(syncDbBtn, success ? 'success' : 'error', success ? 'Синхронизировано' : 'Ошибка синхронизации');
+        setSidebarToolButtonState(syncDbBtn, success ? 'success' : 'error', success ? 'Загружено' : 'Ошибка загрузки');
         setTimeout(() => {
             setSidebarToolButtonState(syncDbBtn, 'default', SIDEBAR_SYNC_LABEL);
         }, 2000);
@@ -1759,12 +1759,12 @@ function bindResetDbCacheButton() {
         const ok = confirm('Обновить локальный справочник из встроенной базы? История заточек не будет удалена.');
         if (!ok) return;
 
-        setSidebarToolButtonState(resetBtn, 'loading', 'Обновление...');
+        setSidebarToolButtonState(resetBtn, 'loading', 'Восстановление...');
         try {
             // Small delay so the loading indicator is visible on fast devices.
             await new Promise(resolve => setTimeout(resolve, 180));
             resetDatabaseCacheWithDefaults();
-            setSidebarToolButtonState(resetBtn, 'success', 'Справочник обновлен');
+            setSidebarToolButtonState(resetBtn, 'success', 'Восстановлено');
             setTimeout(() => {
                 setSidebarToolButtonState(resetBtn, 'default', SIDEBAR_RESET_LABEL);
             }, 1700);
