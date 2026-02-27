@@ -333,8 +333,7 @@
                                 placeholder="Заметки, особенности заточки..."></textarea>
                         </div>
 
-                        <button id="btn-save-record" class="btn-primary"
-                            onclick="if(window.saveRecordClick) window.saveRecordClick(event)">
+                        <button id="btn-save-record" class="btn-primary">
                             Сохранить в журнал
                         </button>
                         <button id="btn-cancel-edit" class="btn-secondary hidden"
@@ -530,8 +529,8 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/knives.js?v=119"></script>
-    <script src="js/app.js?v=119"></script>
+    <script src="js/knives.js?v=120"></script>
+    <script src="js/app.js?v=120"></script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then(reg => {

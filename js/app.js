@@ -859,6 +859,7 @@ document.getElementById('btn-predict-apply').addEventListener('click', () => {
 });
 
 window.saveRecordClick = function (e) {
+    console.log("saveRecordClick FIRED!", e);
     if (e) e.preventDefault();
     try {
         const brand = document.getElementById('record-brand').value.trim();
@@ -918,8 +919,7 @@ window.saveRecordClick = function (e) {
         alert("Ошибка сохранения: " + err.message);
     }
 };
-
-// (Event listener for btn-save-record is now fully bound in HTML via onclick attributes)
+document.getElementById('btn-save-record').addEventListener('click', window.saveRecordClick);
 
 function renderHistory() {
     const history = getHistory();
