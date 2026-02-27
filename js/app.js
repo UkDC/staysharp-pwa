@@ -1704,6 +1704,31 @@ function resetDatabaseCacheWithDefaults() {
     showTransientNotice('Локальный кэш базы сброшен и восстановлен из встроенной базы.');
 }
 
+async function hardRefreshApplication() {
+    // Keep user data; only clear runtime web caches and SW registrations.
+    try {
+        if ('caches' in window && typeof caches.keys === 'function') {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(key => caches.delete(key)));
+        }
+    } catch (e) {
+        console.warn('CacheStorage cleanup failed:', e);
+    }
+
+    try {
+        if ('serviceWorker' in navigator && typeof navigator.serviceWorker.getRegistrations === 'function') {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(reg => reg.unregister()));
+        }
+    } catch (e) {
+        console.warn('Service worker unregister failed:', e);
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('fresh', Date.now().toString());
+    window.location.replace(url.toString());
+}
+
 function bindResetDbCacheButton() {
     const resetBtn = document.getElementById('btn-reset-db-cache');
     if (!resetBtn || resetBtn.dataset.bound === '1') return;
@@ -1717,9 +1742,38 @@ function bindResetDbCacheButton() {
     resetBtn.dataset.bound = '1';
 }
 
+function bindHardRefreshButton() {
+    const refreshBtn = document.getElementById('btn-hard-refresh');
+    if (!refreshBtn || refreshBtn.dataset.bound === '1') return;
+
+    refreshBtn.addEventListener('click', async () => {
+        const ok = confirm('Перезапустить приложение и принудительно очистить web-кэш (Service Worker + Cache Storage)? История и журнал не удаляются.');
+        if (!ok) return;
+
+        const originalText = refreshBtn.textContent;
+        refreshBtn.textContent = 'Обновление...';
+        refreshBtn.disabled = true;
+        refreshBtn.style.opacity = '0.7';
+
+        try {
+            await hardRefreshApplication();
+        } catch (e) {
+            console.error('Hard refresh failed:', e);
+            alert('Не удалось выполнить обновление приложения: ' + e.message);
+            refreshBtn.textContent = originalText;
+            refreshBtn.disabled = false;
+            refreshBtn.style.opacity = '1';
+        }
+    });
+
+    refreshBtn.dataset.bound = '1';
+}
+
 window.resetDatabaseCache = resetDatabaseCacheWithDefaults;
 bindResetDbCacheButton();
+bindHardRefreshButton();
 window.addEventListener('pageshow', bindResetDbCacheButton);
+window.addEventListener('pageshow', bindHardRefreshButton);
 
 
 
