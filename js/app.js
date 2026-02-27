@@ -858,47 +858,64 @@ document.getElementById('btn-predict-apply').addEventListener('click', () => {
     document.getElementById('prediction-out-wrap').classList.add('hidden');
 });
 
-document.getElementById('btn-save-record').addEventListener('click', () => {
-    const brand = document.getElementById('record-brand').value.trim();
-    if (!brand) return alert("Поле 'Бренд' обязательно для заполнения!");
+window.saveRecordClick = function (e) {
+    if (e) e.preventDefault();
+    try {
+        const brand = document.getElementById('record-brand').value.trim();
+        if (!brand) return alert("Поле 'Бренд' обязательно для заполнения!");
 
-    const record = {
-        id: editIndex >= 0 ? (getHistory()[editIndex].id || (Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5))) : (Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5)),
-        date: editIndex >= 0 ? getHistory()[editIndex].date : new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-        brand: brand,
-        series: document.getElementById('record-series').value.trim(),
-        steel: document.getElementById('record-steel').value.trim(),
-        carbon: document.getElementById('record-carbon').value.trim(),
-        crmov: document.getElementById('record-crmov').value.trim(),
-        length: document.getElementById('record-length').value.trim(),
-        width: document.getElementById('record-width').value.trim(),
-        angle: document.getElementById('record-angle').value.trim(),
-        honingAdd: document.getElementById('record-honing-add').value.trim(),
-        bess: document.getElementById('record-bess').value.trim(),
-        comments: document.getElementById('record-comments').value.trim()
-    };
+        const historyOpts = getHistory();
+        const existingRecord = (editIndex >= 0 && historyOpts[editIndex]) ? historyOpts[editIndex] : {};
 
-    if (editIndex >= 0) {
-        // Update existing record
-        const history = getHistory();
-        history[editIndex] = record;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-        renderHistory();
-        pushToCloud(record, "History", "update");
+        const record = {
+            id: editIndex >= 0 ? (existingRecord.id || (Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5))) : (Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5)),
+            date: editIndex >= 0 ? (existingRecord.date || new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })) : new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+            brand: brand,
+            series: document.getElementById('record-series').value.trim(),
+            steel: document.getElementById('record-steel').value.trim(),
+            carbon: document.getElementById('record-carbon').value.trim(),
+            crmov: document.getElementById('record-crmov').value.trim(),
+            length: document.getElementById('record-length').value.trim(),
+            width: document.getElementById('record-width').value.trim(),
+            angle: document.getElementById('record-angle').value.trim(),
+            honingAdd: document.getElementById('record-honing-add').value.trim(),
+            bess: document.getElementById('record-bess').value.trim(),
+            comments: document.getElementById('record-comments').value.trim()
+        };
 
-        editIndex = -1;
-        document.getElementById('btn-save-record').textContent = 'Сохранить в журнал';
-        document.getElementById('btn-cancel-edit').classList.add('hidden');
-    } else {
-        // Save new record
-        saveToHistory(record);
+        if (editIndex >= 0) {
+            // Update existing record
+            historyOpts[editIndex] = record;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(historyOpts));
+            renderHistory();
+            pushToCloud(record, "History", "update");
+
+            editIndex = -1;
+            document.getElementById('btn-save-record').textContent = 'Сохранить в журнал';
+            document.getElementById('btn-cancel-edit').classList.add('hidden');
+        } else {
+            // Save new record
+            saveToHistory(record);
+        }
+
+        clearForm();
+
+        // Auto switch to History
+        document.querySelector('[data-target="history-view"]').click();
+    } catch (err) {
+        console.error("Save error:", err);
+        alert("Ошибка сохранения: " + err.message);
     }
+};
 
-    clearForm();
-
-    // Auto switch to History
-    document.querySelector('[data-target="history-view"]').click();
-});
+// Also attach via JS just in case
+const btnSaveRec = document.getElementById('btn-save-record');
+if (btnSaveRec) {
+    // Remove old listeners by cloning
+    const newBtnSave = btnSaveRec.cloneNode(true);
+    btnSaveRec.parentNode.replaceChild(newBtnSave, btnSaveRec);
+    newBtnSave.addEventListener('click', window.saveRecordClick);
+}
 
 function renderHistory() {
     const history = getHistory();
