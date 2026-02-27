@@ -15,7 +15,7 @@
     <link rel="icon" href="/staysharp-pwa/favicon.ico">
     <link rel="shortcut icon" href="/staysharp-pwa/favicon.ico">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="css/style.css?v=1772229056">
+    <link rel="stylesheet" href="css/style.css?v=1772229397">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -571,9 +571,20 @@
         </div>
     </div>
 
+    <div id="app-dialog" class="modal-overlay hidden">
+        <div class="modal-content panel app-dialog-content">
+            <h2 id="app-dialog-title">Сообщение</h2>
+            <div id="app-dialog-message" class="modal-body app-dialog-message"></div>
+            <div class="app-dialog-actions">
+                <button id="app-dialog-cancel" class="btn-secondary hidden" type="button">Отмена</button>
+                <button id="app-dialog-confirm" class="btn-primary" type="button">Понятно</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="js/knives.js?v=124"></script>
-    <script src="js/app.js?v=1772229056"></script>
+    <script src="js/app.js?v=1772229397"></script>
     <script>
         const takeSessionFlag = (key) => {
             try {

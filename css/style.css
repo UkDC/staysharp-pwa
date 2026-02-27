@@ -1680,6 +1680,36 @@ select.predict-select:focus {
   border: 1px solid var(--border-color);
 }
 
+.app-dialog-content {
+  max-width: 420px;
+  padding: 24px;
+}
+
+#app-dialog-title {
+  margin-bottom: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.app-dialog-message {
+  margin-bottom: 18px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.app-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.app-dialog-actions .btn-primary,
+.app-dialog-actions .btn-secondary {
+  min-width: 112px;
+}
+
 /* === SCHEMA PAGE === */
 .schemas-grid {
   display: grid;

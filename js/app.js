@@ -1183,6 +1183,74 @@ function isDbViewActive() {
     return !!dbView && dbView.classList.contains('active');
 }
 
+let appDialogResolver = null;
+
+function closeAppDialog(result = false) {
+    const dialog = document.getElementById('app-dialog');
+    if (!dialog) return;
+    const resolve = appDialogResolver;
+    appDialogResolver = null;
+    dialog.classList.add('hidden');
+    if (resolve) resolve(result);
+}
+
+function openAppDialog({
+    title = 'Сообщение',
+    message = '',
+    confirmLabel = 'Понятно',
+    cancelLabel = 'Отмена',
+    showCancel = false
+} = {}) {
+    const dialog = document.getElementById('app-dialog');
+    const dialogTitle = document.getElementById('app-dialog-title');
+    const dialogMessage = document.getElementById('app-dialog-message');
+    const dialogCancel = document.getElementById('app-dialog-cancel');
+    const dialogConfirm = document.getElementById('app-dialog-confirm');
+
+    if (!dialog || !dialogTitle || !dialogMessage || !dialogConfirm || !dialogCancel) {
+        return Promise.resolve(false);
+    }
+
+    if (appDialogResolver) {
+        closeAppDialog(false);
+    }
+
+    dialogTitle.textContent = title;
+    dialogMessage.textContent = message;
+    dialogConfirm.textContent = confirmLabel;
+    dialogCancel.textContent = cancelLabel;
+    dialogCancel.classList.toggle('hidden', !showCancel);
+    dialog.classList.remove('hidden');
+
+    return new Promise((resolve) => {
+        appDialogResolver = resolve;
+        requestAnimationFrame(() => {
+            dialogConfirm.focus();
+        });
+    });
+}
+
+function appAlert(message, title = 'Сообщение', confirmLabel = 'Понятно') {
+    if (!document.getElementById('app-dialog')) {
+        window.alert(message);
+        return Promise.resolve(true);
+    }
+    return openAppDialog({ title, message, confirmLabel, showCancel: false });
+}
+
+function appConfirm(message, options = {}) {
+    if (!document.getElementById('app-dialog')) {
+        return Promise.resolve(window.confirm(message));
+    }
+    return openAppDialog({
+        title: options.title || 'Подтверждение',
+        message,
+        confirmLabel: options.confirmLabel || 'Подтвердить',
+        cancelLabel: options.cancelLabel || 'Отмена',
+        showCancel: true
+    });
+}
+
 // Fetches History from cloud and merges it with local (never blindly overwrites local state).
 async function syncHistoryFromCloud(showUI = true) {
     const syncBtn = document.getElementById('btn-sync');
@@ -1259,7 +1327,7 @@ async function syncHistoryFromCloud(showUI = true) {
         success = true;
     } catch (e) {
         console.error("History sync failed", e);
-        if (showUI) alert("Ошибка сети History: " + e.message);
+        if (showUI) await appAlert('Ошибка сети History: ' + e.message, 'Ошибка синхронизации');
     }
 
     if (showUI && syncBtn) {
@@ -1348,7 +1416,7 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
         }
     } catch (e) {
         console.error("Database sync failed", e);
-        if (!isAutoSync) alert("Ошибка сети DB: " + e.message);
+        if (!isAutoSync) await appAlert('Ошибка сети DB: ' + e.message, 'Ошибка синхронизации');
     }
 
     // Also sync History during auto-sync
@@ -1439,18 +1507,22 @@ function saveToHistory(record) {
 let editIndex = -1;
 
 // Ensure function is in global scope to be called from onclick element
-window.deleteRecord = function (index) {
-    if (confirm("Вы уверены, что хотите удалить эту запись?")) {
-        const history = getHistory();
-        const recordId = history[index].id;
-        history.splice(index, 1);
-        safeSetItem(STORAGE_KEY, JSON.stringify(history));
-        renderHistory();
-        if (recordId) {
-            rememberDeletedId(recordId);
-            enqueueCloudOperation({ id: recordId }, "History", "delete");
-            void flushCloudOutbox();
-        }
+window.deleteRecord = async function (index) {
+    const ok = await appConfirm('Удалить эту запись из журнала?', {
+        title: 'Удаление записи',
+        confirmLabel: 'Удалить'
+    });
+    if (!ok) return;
+
+    const history = getHistory();
+    const recordId = history[index].id;
+    history.splice(index, 1);
+    safeSetItem(STORAGE_KEY, JSON.stringify(history));
+    renderHistory();
+    if (recordId) {
+        rememberDeletedId(recordId);
+        enqueueCloudOperation({ id: recordId }, "History", "delete");
+        void flushCloudOutbox();
     }
 };
 
@@ -2053,7 +2125,7 @@ let isSavingRecord = false;
 let lastSaveEventAt = 0;
 const SAVE_EVENT_DEDUP_MS = 700;
 
-window.saveRecordClick = function (e) {
+window.saveRecordClick = async function (e) {
     // iOS PWA may fire touch + click for the same tap; keep only first event.
     const eventType = e && e.type ? e.type : '';
     if (eventType) {
@@ -2084,7 +2156,7 @@ window.saveRecordClick = function (e) {
         const brand = document.getElementById('record-brand').value.trim();
         if (!brand) {
             isSavingRecord = false;
-            alert("⚠️ Заполните поле 'Бренд'!");
+            await appAlert("Заполните поле 'Бренд'.", 'Проверка формы');
             return;
         }
 
@@ -2154,7 +2226,7 @@ window.saveRecordClick = function (e) {
     } catch (err) {
         console.error("Save error:", err);
         isSavingRecord = false;
-        alert("Ошибка сохранения: " + err.message);
+        await appAlert('Ошибка сохранения: ' + err.message, 'Ошибка');
     }
 };
 
@@ -2227,7 +2299,10 @@ function bindResetDbCacheButton() {
     if (!resetBtn || resetBtn.dataset.bound === '1') return;
 
     resetBtn.addEventListener('click', async () => {
-        const ok = confirm('Обновить локальный справочник из встроенной базы? История заточек не будет удалена.');
+        const ok = await appConfirm('Обновить локальный справочник из встроенной базы? История заточек не будет удалена.', {
+            title: 'clearCache',
+            confirmLabel: 'Обновить'
+        });
         if (!ok) return;
 
         setSidebarToolButtonState(resetBtn, 'loading', SIDEBAR_RESET_LABEL);
@@ -2256,7 +2331,10 @@ function bindHardRefreshButton() {
     if (!refreshBtn || refreshBtn.dataset.bound === '1') return;
 
     refreshBtn.addEventListener('click', async () => {
-        const ok = confirm('Перезапустить приложение и принудительно очистить web-кэш (Service Worker + Cache Storage)? История и журнал не удаляются.');
+        const ok = await appConfirm('Перезапустить приложение и принудительно очистить web-кэш (Service Worker + Cache Storage)? История и журнал не удаляются.', {
+            title: 'update PWA',
+            confirmLabel: 'Перезапустить'
+        });
         if (!ok) return;
 
         setSidebarToolButtonState(refreshBtn, 'loading', SIDEBAR_HARD_REFRESH_LABEL);
@@ -2269,7 +2347,7 @@ function bindHardRefreshButton() {
             setSidebarToolButtonState(refreshBtn, 'success', SIDEBAR_HARD_REFRESH_LABEL);
         } catch (e) {
             console.error('Hard refresh failed:', e);
-            alert('Не удалось выполнить обновление приложения: ' + e.message);
+            await appAlert('Не удалось выполнить обновление приложения: ' + e.message, 'Ошибка');
             setSidebarToolButtonState(refreshBtn, 'error', 'Ошибка обновления');
             setTimeout(() => {
                 setSidebarToolButtonState(refreshBtn, 'default', SIDEBAR_HARD_REFRESH_LABEL);
@@ -2594,6 +2672,11 @@ const modal = document.getElementById('info-modal');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
 const closeModal = document.querySelector('.modal-close');
+const appDialog = document.getElementById('app-dialog');
+const appDialogTitle = document.getElementById('app-dialog-title');
+const appDialogMessage = document.getElementById('app-dialog-message');
+const appDialogCancel = document.getElementById('app-dialog-cancel');
+const appDialogConfirm = document.getElementById('app-dialog-confirm');
 
 function openModal(title, htmlContent) {
     if (!modal || !modalTitle || !modalBody) return;
@@ -2618,6 +2701,26 @@ if (modal) {
         if (e.target === modal) hideInfoModal(); // click outside to close
     });
 }
+
+if (appDialogConfirm) {
+    appDialogConfirm.addEventListener('click', () => closeAppDialog(true));
+}
+
+if (appDialogCancel) {
+    appDialogCancel.addEventListener('click', () => closeAppDialog(false));
+}
+
+if (appDialog) {
+    appDialog.addEventListener('click', (e) => {
+        if (e.target === appDialog) closeAppDialog(false);
+    });
+}
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && appDialog && !appDialog.classList.contains('hidden')) {
+        closeAppDialog(false);
+    }
+});
 
 function bindInfoButtons() {
     document.querySelectorAll('.info-icon').forEach(btn => {
