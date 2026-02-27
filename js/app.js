@@ -836,11 +836,65 @@ async function pushToCloud(record, sheetName = "History", action = "add") {
 }
 
 async function fetchCloudHistoryRecords() {
-    const res = await fetch(`${GOOGLE_SCRIPT_URL}?token=${API_TOKEN}&sheet=History&_t=${Date.now()}`, { cache: 'no-store' });
+    const cloudMeta = getCloudHistoryMeta();
+    const url = new URL(GOOGLE_SCRIPT_URL);
+    url.searchParams.set('token', API_TOKEN);
+    url.searchParams.set('sheet', 'History');
+    url.searchParams.set('_t', String(Date.now()));
+    if (cloudMeta.initialized && cloudMeta.updatedAt) {
+        url.searchParams.set('updatedAfter', cloudMeta.updatedAt);
+    }
+
+    const res = await fetch(url.toString(), { cache: 'no-store' });
     if (!res.ok) throw new Error(`Cloud History HTTP ${res.status}`);
     const data = await res.json();
-    if (!Array.isArray(data) || data.error) throw new Error('Cloud History returned invalid payload');
-    return sanitizeHistoryArray(data);
+
+    if (Array.isArray(data)) {
+        const records = sanitizeHistoryArray(data);
+        return {
+            records,
+            cloudIds: records.map(item => toText(item.id).trim()).filter(Boolean),
+            lastUpdatedAt: getHistorySyncWatermark(records, cloudMeta.updatedAt),
+            mode: 'full'
+        };
+    }
+
+    if (!data || typeof data !== 'object' || data.error) {
+        throw new Error('Cloud History returned invalid payload');
+    }
+
+    const records = sanitizeHistoryArray(data.records);
+    const cloudIds = Array.isArray(data.cloudIds)
+        ? data.cloudIds.map(id => toText(id).trim()).filter(Boolean)
+        : records.map(item => toText(item.id).trim()).filter(Boolean);
+
+    return {
+        records,
+        cloudIds,
+        lastUpdatedAt: getHistorySyncWatermark(records, data.lastUpdatedAt || cloudMeta.updatedAt),
+        mode: toText(data.mode || 'delta')
+    };
+}
+
+function getHistorySyncWatermark(records, fallback = '') {
+    let maxTs = 0;
+    let watermark = toText(fallback);
+
+    const fallbackTs = Date.parse(watermark);
+    if (!isNaN(fallbackTs) && fallbackTs > 0) {
+        maxTs = fallbackTs;
+        watermark = new Date(fallbackTs).toISOString();
+    }
+
+    sanitizeHistoryArray(records).forEach((item) => {
+        const ts = parseRecordTimestamp(item);
+        if (ts > maxTs) {
+            maxTs = ts;
+            watermark = new Date(ts).toISOString();
+        }
+    });
+
+    return watermark;
 }
 
 async function flushCloudOutbox() {
@@ -1117,10 +1171,11 @@ async function syncHistoryFromCloud(showUI = true) {
     try {
         await flushCloudOutbox();
         const localHistory = getHistory();
-        const cloudHistory = await fetchCloudHistoryRecords();
+        const historySnapshot = await fetchCloudHistoryRecords();
+        const cloudHistory = historySnapshot.records;
         const cloudMeta = getCloudHistoryMeta();
         let deletedIdsMap = pruneDeletedIdsMap(getDeletedIdsMap());
-        const currentCloudIds = new Set(cloudHistory.map(item => toText(item.id).trim()).filter(Boolean));
+        const currentCloudIds = new Set((historySnapshot.cloudIds || []).map(id => toText(id).trim()).filter(Boolean));
 
         let mergedHistory = mergeHistoryRecords(localHistory, cloudHistory, deletedIdsMap);
 
@@ -1159,7 +1214,7 @@ async function syncHistoryFromCloud(showUI = true) {
         setCloudHistoryMeta({
             initialized: true,
             cloudIds: Array.from(currentCloudIds),
-            updatedAt: new Date().toISOString()
+            updatedAt: getHistorySyncWatermark(cloudHistory, historySnapshot.lastUpdatedAt || cloudMeta.updatedAt)
         });
 
         safeSetItem(STORAGE_KEY, JSON.stringify(mergedHistory));

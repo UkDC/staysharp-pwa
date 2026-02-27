@@ -4,6 +4,8 @@
 
 ## Что реализовано
 - `doGet` для чтения `History` и `Database`.
+- `doGet` использует `CacheService` для ускорения повторных чтений.
+- Для `History` поддерживается дельта-ответ по `updatedAfter`.
 - `doPost` для записи в `History` (`add/update/delete`).
 - Проверка токена из `Script Properties` (`API_TOKEN`).
 - `last edit wins` по полю `UpdatedAt`.

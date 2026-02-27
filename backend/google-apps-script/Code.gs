@@ -53,9 +53,13 @@ function doGet(e) {
     if (ALLOWED_READ_SHEETS.indexOf(sheetName) === -1) {
       return jsonOut_({ error: 'Forbidden: Not allowed to read this sheet' });
     }
+    var updatedAfter = (e && e.parameter && e.parameter.updatedAfter) ? e.parameter.updatedAfter : '';
 
     var cachedPayload = getCachedSheetPayload_(sheetName);
     if (cachedPayload) {
+      if (sheetName === SHEET_HISTORY && updatedAfter) {
+        return jsonOut_(buildHistoryDeltaPayload_(parseCachedSheetRows_(cachedPayload), updatedAfter));
+      }
       return jsonTextOut_(cachedPayload);
     }
 
@@ -66,6 +70,9 @@ function doGet(e) {
 
     var values = sheet.getDataRange().getValues();
     if (values.length < 2) {
+      if (sheetName === SHEET_HISTORY && updatedAfter) {
+        return jsonOut_(buildHistoryDeltaPayload_([], updatedAfter));
+      }
       putCachedSheetPayload_(sheetName, '[]');
       return jsonOut_([]);
     }
@@ -87,6 +94,9 @@ function doGet(e) {
 
     var payload = JSON.stringify(out);
     putCachedSheetPayload_(sheetName, payload);
+    if (sheetName === SHEET_HISTORY && updatedAfter) {
+      return jsonOut_(buildHistoryDeltaPayload_(out, updatedAfter));
+    }
     return jsonTextOut_(payload);
   } catch (err) {
     return jsonOut_({ error: err.message || String(err) });
@@ -283,6 +293,16 @@ function getCachedSheetPayload_(sheetName) {
   }
 }
 
+function parseCachedSheetRows_(payload) {
+  if (!payload) return [];
+  try {
+    var parsed = JSON.parse(payload);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+}
+
 function putCachedSheetPayload_(sheetName, payload) {
   var text = String(payload || '');
   if (!text || text.length > CACHE_MAX_PAYLOAD_CHARS) return;
@@ -296,6 +316,56 @@ function invalidateSheetCache_(sheetName) {
   try {
     CacheService.getScriptCache().remove(cacheKeyForSheet_(sheetName));
   } catch (_) {}
+}
+
+function valueFromRowObjectByCanonical_(rowObj, canonical) {
+  if (!rowObj || typeof rowObj !== 'object' || !canonical) return '';
+  for (var key in rowObj) {
+    if (!Object.prototype.hasOwnProperty.call(rowObj, key)) continue;
+    if (canonicalFromHeader_(key) === canonical) return rowObj[key];
+  }
+  return '';
+}
+
+function buildHistoryDeltaPayload_(rows, updatedAfter) {
+  var list = Array.isArray(rows) ? rows : [];
+  var afterTs = parseTs_(updatedAfter);
+  var records = [];
+  var cloudIds = [];
+  var maxTs = 0;
+  var lastUpdatedAt = '';
+
+  for (var i = 0; i < list.length; i++) {
+    var rowObj = list[i];
+    if (!rowObj || typeof rowObj !== 'object') continue;
+
+    var idVal = str_(valueFromRowObjectByCanonical_(rowObj, 'id')).trim();
+    if (idVal) cloudIds.push(idVal);
+
+    var updatedVal = valueFromRowObjectByCanonical_(rowObj, 'updatedAt');
+    var rowTs = parseTs_(updatedVal);
+    if (!rowTs) {
+      rowTs = parseTs_(valueFromRowObjectByCanonical_(rowObj, 'date'));
+    }
+
+    if (rowTs > maxTs) {
+      maxTs = rowTs;
+      lastUpdatedAt = new Date(rowTs).toISOString();
+    }
+
+    if (afterTs > 0) {
+      if (rowTs > afterTs) records.push(rowObj);
+    } else {
+      records.push(rowObj);
+    }
+  }
+
+  return {
+    mode: afterTs > 0 ? 'delta' : 'full',
+    records: records,
+    cloudIds: cloudIds,
+    lastUpdatedAt: lastUpdatedAt
+  };
 }
 
 function parseRequestData_(e) {
