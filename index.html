@@ -15,7 +15,7 @@
     <link rel="icon" href="/staysharp-pwa/favicon.ico">
     <link rel="shortcut icon" href="/staysharp-pwa/favicon.ico">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="css/style.css?v=1772214736">
+    <link rel="stylesheet" href="css/style.css?v=1772215866">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -544,8 +544,41 @@
 
     <!-- Scripts -->
     <script src="js/knives.js?v=124"></script>
-    <script src="js/app.js?v=1772214736"></script>
+    <script src="js/app.js?v=1772215866"></script>
     <script>
+        const takeSessionFlag = (key) => {
+            try {
+                const value = sessionStorage.getItem(key);
+                if (value) sessionStorage.removeItem(key);
+                return value;
+            } catch (e) {
+                return null;
+            }
+        };
+
+        const hasActiveSessionDeadline = (key) => {
+            try {
+                const raw = sessionStorage.getItem(key);
+                if (!raw) return false;
+                const deadline = Number(raw);
+                if (!Number.isFinite(deadline) || deadline <= Date.now()) {
+                    sessionStorage.removeItem(key);
+                    return false;
+                }
+                return true;
+            } catch (e) {
+                return false;
+            }
+        };
+
+        if (takeSessionFlag('staysharp_reopen_sidebar_once') && typeof openSidebar === 'function') {
+            openSidebar();
+        }
+
+        if (takeSessionFlag('staysharp_show_pwa_updated_notice') && typeof showTransientNotice === 'function') {
+            showTransientNotice('Приложение обновлено.');
+        }
+
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then(reg => {
                 // Check for updates every time the app is opened
@@ -553,6 +586,7 @@
                 // When a new SW is found and activated, reload to get fresh assets
                 let refreshing = false;
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (hasActiveSessionDeadline('staysharp_skip_sw_reload_until')) return;
                     if (!refreshing) {
                         refreshing = true;
                         window.location.reload();

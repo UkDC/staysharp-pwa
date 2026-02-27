@@ -1723,6 +1723,18 @@ function resetDatabaseCacheWithDefaults() {
 }
 
 async function hardRefreshApplication() {
+    try {
+        sessionStorage.setItem('staysharp_skip_sw_reload_until', String(Date.now() + 15000));
+        sessionStorage.setItem('staysharp_show_pwa_updated_notice', '1');
+        if (typeof sidebar !== 'undefined' && sidebar && !sidebar.classList.contains('collapsed')) {
+            sessionStorage.setItem('staysharp_reopen_sidebar_once', '1');
+        } else {
+            sessionStorage.removeItem('staysharp_reopen_sidebar_once');
+        }
+    } catch (e) {
+        console.warn('Session flags unavailable for hard refresh:', e);
+    }
+
     // Keep user data; only clear runtime web caches and SW registrations.
     try {
         if ('caches' in window && typeof caches.keys === 'function') {
