@@ -1000,8 +1000,8 @@ function applyCloudDeletionDiff(localRecords, prevCloudIds, currentCloudIds, pen
     return { records, deletedIds };
 }
 
-const HISTORY_PULL_THRESHOLD = 72;
-const HISTORY_PULL_MAX = 108;
+const HISTORY_PULL_THRESHOLD = 96;
+const HISTORY_PULL_MAX = 140;
 const historyPullState = {
     dragging: false,
     ready: false,
