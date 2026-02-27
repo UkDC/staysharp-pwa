@@ -96,6 +96,102 @@ function sanitizeKnivesArray(items) {
         .map(normalizeKnifeRecord);
 }
 
+function normalizeHistoryRecord(input = {}) {
+    return {
+        id: toText(input.id ?? input.ID).trim(),
+        date: normalizeHistoryDateValue(input.date ?? input.Date),
+        updatedAt: toText(input.updatedAt ?? input.UpdatedAt ?? input["Updated At"] ?? input.updated_at),
+        brand: toText(input.brand ?? input.Brand).trim(),
+        series: toText(input.series ?? input.Series).trim(),
+        steel: toText(input.steel ?? input.Steel).trim(),
+        carbon: toText(input.carbon ?? input["C, %"]),
+        crmov: toText(input.crmov ?? input["CrMoV, %"]),
+        length: toText(input.length ?? input.Length),
+        width: toText(input.width ?? input.Width),
+        angle: toText(input.angle ?? input["Sharp. angle (double)"]),
+        honingAdd: toText(input.honingAdd ?? input["Honing add"]),
+        bess: toText(input.bess ?? input["BESS g"]),
+        comments: toText(input.comments ?? input.Comments).trim()
+    };
+}
+
+function sanitizeHistoryArray(items) {
+    if (!Array.isArray(items)) return [];
+    return items
+        .filter(item => item && typeof item === 'object' && !Array.isArray(item))
+        .map(normalizeHistoryRecord)
+        .filter(item => item.id || item.brand);
+}
+
+function parseRecordTimestamp(record) {
+    if (!record || typeof record !== 'object') return 0;
+    const updatedAt = toText(record.updatedAt).trim();
+    if (updatedAt) {
+        const isoTs = Date.parse(updatedAt);
+        if (!isNaN(isoTs)) return isoTs;
+    }
+
+    const dateVal = toText(record.date).trim().replace(',', '');
+    if (!dateVal) return 0;
+    const nativeTs = Date.parse(dateVal);
+    if (!isNaN(nativeTs)) return nativeTs;
+
+    const ruMatch = dateVal.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (!ruMatch) return 0;
+
+    const day = Number(ruMatch[1]);
+    const month = Number(ruMatch[2]) - 1;
+    const year = Number(ruMatch[3]);
+    const hh = Number(ruMatch[4] || 0);
+    const mm = Number(ruMatch[5] || 0);
+    const ss = Number(ruMatch[6] || 0);
+    return new Date(year, month, day, hh, mm, ss).getTime();
+}
+
+function normalizeHistoryDateValue(value) {
+    const raw = toText(value).trim();
+    if (!raw) return '';
+
+    const ruMatch = raw.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (ruMatch) {
+        // Keep manual date-only values intact; normalize time format when present.
+        if (!ruMatch[4]) return `${ruMatch[1]}.${ruMatch[2]}.${ruMatch[3]}`;
+        const ss = ruMatch[6] || '00';
+        return `${ruMatch[1]}.${ruMatch[2]}.${ruMatch[3]} ${ruMatch[4]}:${ruMatch[5]}:${ss}`;
+    }
+
+    const nativeTs = Date.parse(raw);
+    if (!isNaN(nativeTs)) {
+        return new Date(nativeTs).toLocaleString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    }
+
+    return raw;
+}
+
+function touchHistoryRecord(record, keepDate = false) {
+    const normalized = normalizeHistoryRecord(record || {});
+    const now = new Date();
+    normalized.updatedAt = now.toISOString();
+    if (!keepDate || !toText(normalized.date).trim()) {
+        normalized.date = now.toLocaleString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    }
+    return normalized;
+}
+
 function writeDatabaseCache(knives) {
     const payload = {
         schemaVersion: DB_CACHE_SCHEMA_VERSION,
@@ -469,42 +565,389 @@ calculateLive();
 // ====== CLOUD SYNC ======
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzaKD0e3RrcBfnb7fFpDEEbvgd_CIDzABkymBQzCgSZn6Z66ZLw-R9sXz0m9YrIbFPw/exec';
 const API_TOKEN = 'StaySharp_Secure_Token_2026'; // Секретный токен для базовой защиты
+const CLOUD_OUTBOX_KEY = 'staysharp_cloud_outbox';
+const CLOUD_HISTORY_META_KEY = 'staysharp_cloud_history_meta';
+const HISTORY_DELETED_IDS_KEY = 'staysharp_deleted_ids';
+const HISTORY_DELETED_IDS_TTL_MS = 1000 * 60 * 60 * 24 * 45; // 45 days
+const CLOUD_PUSH_INTERVAL_MS = 7000;
+const CLOUD_PULL_INTERVAL_MS = 30000;
+let cloudQueueFlushPromise = null;
+let cloudPushIntervalId = null;
+let cloudPullIntervalId = null;
 
-async function pushToCloud(record, sheetName = "History", action = "add") {
+function getCloudOutbox() {
+    const raw = safeGetItem(CLOUD_OUTBOX_KEY);
+    if (!raw) return [];
     try {
-        // Use form-encoded payload to be compatible with Apps Script handlers using e.parameter.
-        const params = new URLSearchParams({
-            token: API_TOKEN,
-            sheet: sheetName,
-            action: action,
-            record: JSON.stringify(record || {}),
-            id: record?.id ? String(record.id) : '',
-            date: record?.date ? String(record.date) : '',
-            brand: record?.brand ? String(record.brand) : '',
-            series: record?.series ? String(record.series) : '',
-            steel: record?.steel ? String(record.steel) : '',
-            carbon: record?.carbon ? String(record.carbon) : '',
-            crmov: record?.crmov ? String(record.crmov) : '',
-            length: record?.length ? String(record.length) : '',
-            width: record?.width ? String(record.width) : '',
-            angle: record?.angle ? String(record.angle) : '',
-            honingAdd: record?.honingAdd ? String(record.honingAdd) : '',
-            bess: record?.bess ? String(record.bess) : '',
-            comments: record?.comments ? String(record.comments) : ''
-        });
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+    } catch (e) { }
+    safeSetItem(CLOUD_OUTBOX_KEY, JSON.stringify([]));
+    return [];
+}
 
-        await fetch(GOOGLE_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-            body: params.toString()
+function setCloudOutbox(items) {
+    safeSetItem(CLOUD_OUTBOX_KEY, JSON.stringify(Array.isArray(items) ? items : []));
+}
+
+function getCloudHistoryMeta() {
+    const raw = safeGetItem(CLOUD_HISTORY_META_KEY);
+    if (!raw) return { initialized: false, cloudIds: [], updatedAt: '' };
+    try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+            return {
+                initialized: !!parsed.initialized,
+                cloudIds: Array.isArray(parsed.cloudIds) ? parsed.cloudIds.map(id => toText(id).trim()).filter(Boolean) : [],
+                updatedAt: toText(parsed.updatedAt)
+            };
+        }
+    } catch (e) { }
+    return { initialized: false, cloudIds: [], updatedAt: '' };
+}
+
+function setCloudHistoryMeta(meta) {
+    const normalized = {
+        initialized: !!meta?.initialized,
+        cloudIds: Array.isArray(meta?.cloudIds) ? meta.cloudIds.map(id => toText(id).trim()).filter(Boolean) : [],
+        updatedAt: toText(meta?.updatedAt || new Date().toISOString())
+    };
+    safeSetItem(CLOUD_HISTORY_META_KEY, JSON.stringify(normalized));
+}
+
+function getDeletedIdsMap() {
+    const raw = safeGetItem(HISTORY_DELETED_IDS_KEY);
+    if (!raw) return {};
+    try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+    } catch (e) { }
+    safeSetItem(HISTORY_DELETED_IDS_KEY, JSON.stringify({}));
+    return {};
+}
+
+function setDeletedIdsMap(map) {
+    const normalized = {};
+    if (map && typeof map === 'object') {
+        Object.keys(map).forEach((id) => {
+            const cleanId = toText(id).trim();
+            if (!cleanId) return;
+            normalized[cleanId] = toText(map[id]);
         });
-    } catch (e) {
-        console.error("Cloud push failed", e);
+    }
+    safeSetItem(HISTORY_DELETED_IDS_KEY, JSON.stringify(normalized));
+}
+
+function pruneDeletedIdsMap(inputMap) {
+    const map = (inputMap && typeof inputMap === 'object') ? { ...inputMap } : {};
+    const now = Date.now();
+    Object.keys(map).forEach((id) => {
+        const ts = Date.parse(toText(map[id]));
+        if (isNaN(ts) || now - ts > HISTORY_DELETED_IDS_TTL_MS) {
+            delete map[id];
+        }
+    });
+    return map;
+}
+
+function rememberDeletedId(id, deletedAt = new Date().toISOString()) {
+    const cleanId = toText(id).trim();
+    if (!cleanId) return;
+    const map = pruneDeletedIdsMap(getDeletedIdsMap());
+    map[cleanId] = toText(deletedAt);
+    setDeletedIdsMap(map);
+}
+
+function clearDeletedId(id) {
+    const cleanId = toText(id).trim();
+    if (!cleanId) return;
+    const map = pruneDeletedIdsMap(getDeletedIdsMap());
+    if (Object.prototype.hasOwnProperty.call(map, cleanId)) {
+        delete map[cleanId];
+        setDeletedIdsMap(map);
     }
 }
 
-// Fetches History from cloud and overwrites local
+function getPendingHistoryOpsById() {
+    const ops = getCloudOutbox();
+    const byId = new Map();
+    ops.forEach((op) => {
+        const sheetName = toText(op?.sheetName || 'History');
+        const action = toText(op?.action);
+        const id = toText(op?.record?.id).trim();
+        if (!id || sheetName !== 'History') return;
+        byId.set(id, { action });
+    });
+    return byId;
+}
+
+function mergeCloudOps(prevOp, nextOp) {
+    if (!prevOp) return nextOp;
+    if (nextOp.action === 'delete') return nextOp;
+    if (prevOp.action === 'add' && nextOp.action === 'update') {
+        return { ...nextOp, action: 'add' };
+    }
+    if (prevOp.action === 'delete' && (nextOp.action === 'add' || nextOp.action === 'update')) {
+        return { ...nextOp, action: 'add' };
+    }
+    return nextOp;
+}
+
+function compactCloudOutbox(items) {
+    if (!Array.isArray(items) || items.length === 0) return [];
+    const compacted = [];
+    const keyToIndex = new Map();
+
+    items.forEach((op) => {
+        if (!op || typeof op !== 'object') return;
+        const action = toText(op.action);
+        const sheetName = toText(op.sheetName || 'History');
+        const record = (op.record && typeof op.record === 'object') ? op.record : {};
+        const recordId = toText(record.id).trim();
+
+        if (!action || !sheetName) return;
+        if ((action === 'add' || action === 'update' || action === 'delete') && !recordId) return;
+
+        const normalizedOp = {
+            action,
+            sheetName,
+            record: action === 'delete' ? { id: recordId } : normalizeHistoryRecord(record),
+            queuedAt: toText(op.queuedAt) || new Date().toISOString()
+        };
+
+        const key = `${sheetName}:${recordId}`;
+        const existingIdx = keyToIndex.get(key);
+        if (existingIdx === undefined) {
+            keyToIndex.set(key, compacted.length);
+            compacted.push(normalizedOp);
+            return;
+        }
+
+        compacted[existingIdx] = mergeCloudOps(compacted[existingIdx], normalizedOp);
+    });
+
+    return compacted;
+}
+
+function enqueueCloudOperation(record, sheetName = "History", action = "add") {
+    const normalizedRecord = action === 'delete'
+        ? { id: toText(record?.id).trim() }
+        : normalizeHistoryRecord(record || {});
+    if (!normalizedRecord.id) return;
+
+    const outbox = getCloudOutbox();
+    outbox.push({
+        action,
+        sheetName,
+        record: normalizedRecord,
+        queuedAt: new Date().toISOString()
+    });
+    setCloudOutbox(compactCloudOutbox(outbox));
+}
+
+async function pushToCloud(record, sheetName = "History", action = "add") {
+    const normalizedRecord = action === 'delete'
+        ? { id: toText(record?.id).trim() }
+        : normalizeHistoryRecord(record || {});
+    if (!normalizedRecord.id) throw new Error('Missing record id for cloud sync');
+
+    // Apps Script expects JSON in e.postData.contents.
+    // text/plain avoids CORS preflight while preserving a JSON body.
+    const payload = {
+        token: API_TOKEN,
+        sheet: sheetName,
+        action,
+        record: normalizedRecord
+    };
+
+    const response = await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+        body: JSON.stringify(payload),
+        cache: 'no-store'
+    });
+
+    const responseText = (await response.text()).trim();
+    if (!response.ok) throw new Error(`Cloud HTTP ${response.status}`);
+    if (/^Success/i.test(responseText)) return true;
+    if (/Unauthorized/i.test(responseText)) throw new Error('Cloud unauthorized token');
+    if (/^Error/i.test(responseText)) throw new Error(responseText);
+
+    if (!responseText || responseText === 'null') return true;
+    try {
+        const parsed = JSON.parse(responseText);
+        if (parsed && (parsed.ok || parsed.success)) return true;
+        if (parsed && parsed.error) throw new Error(parsed.error);
+    } catch (e) { }
+    throw new Error(`Unexpected cloud response: ${responseText.slice(0, 120)}`);
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchCloudHistoryRecords() {
+    const res = await fetch(`${GOOGLE_SCRIPT_URL}?token=${API_TOKEN}&sheet=History&_t=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Cloud History HTTP ${res.status}`);
+    const data = await res.json();
+    if (!Array.isArray(data) || data.error) throw new Error('Cloud History returned invalid payload');
+    return sanitizeHistoryArray(data);
+}
+
+async function confirmHistoryOperation(op, attempts = 3) {
+    if (!op || !op.record || !op.record.id) return false;
+    const id = toText(op.record.id).trim();
+    if (!id) return false;
+
+    for (let i = 0; i < attempts; i += 1) {
+        const cloudHistory = await fetchCloudHistoryRecords();
+        const exists = cloudHistory.some(item => item.id === id);
+        if (op.action === 'delete') {
+            if (!exists) return true;
+        } else if (exists) {
+            return true;
+        }
+        await sleep(500);
+    }
+
+    return false;
+}
+
+async function flushCloudOutbox() {
+    if (cloudQueueFlushPromise) return cloudQueueFlushPromise;
+    cloudQueueFlushPromise = (async () => {
+        const queue = getCloudOutbox();
+        if (queue.length === 0) return { sent: 0, failed: 0 };
+
+        const failed = [];
+        let sent = 0;
+        for (const op of queue) {
+            try {
+                await pushToCloud(op.record, op.sheetName, op.action);
+                if (op.sheetName === 'History') {
+                    const confirmed = await confirmHistoryOperation(op);
+                    if (!confirmed) {
+                        throw new Error('Cloud did not confirm this operation');
+                    }
+                }
+                sent += 1;
+            } catch (e) {
+                failed.push(op);
+                console.warn('Cloud op failed, will retry:', op.action, op.record?.id, e.message);
+            }
+        }
+
+        setCloudOutbox(compactCloudOutbox(failed));
+        return { sent, failed: failed.length };
+    })();
+
+    try {
+        return await cloudQueueFlushPromise;
+    } finally {
+        cloudQueueFlushPromise = null;
+    }
+}
+
+function mergeHistoryRecords(localHistory, cloudHistory, deletedIdsMap = {}) {
+    const local = sanitizeHistoryArray(localHistory);
+    const cloud = sanitizeHistoryArray(cloudHistory);
+    const merged = local.slice();
+    const indexById = new Map();
+    const seenNoId = new Set();
+
+    merged.forEach((item, index) => {
+        if (item.id) {
+            indexById.set(item.id, index);
+            return;
+        }
+        const fp = `${item.date}|${item.brand}|${item.series}|${item.steel}|${item.angle}|${item.comments}`;
+        seenNoId.add(fp);
+    });
+
+    cloud.forEach((item) => {
+        if (item.id) {
+            const deletedAtRaw = toText(deletedIdsMap[item.id]);
+            if (deletedAtRaw) {
+                const deletedAtTs = Date.parse(deletedAtRaw);
+                const itemTs = parseRecordTimestamp(item);
+                if (!isNaN(deletedAtTs) && itemTs > 0 && itemTs <= deletedAtTs) {
+                    return;
+                }
+            }
+
+            const existingIdx = indexById.get(item.id);
+            if (existingIdx === undefined) {
+                indexById.set(item.id, merged.length);
+                merged.push(item);
+                return;
+            }
+
+            const current = merged[existingIdx];
+            const localTs = parseRecordTimestamp(current);
+            const cloudTs = parseRecordTimestamp(item);
+
+            if (cloudTs > localTs) {
+                merged[existingIdx] = item;
+                return;
+            }
+
+            if (localTs > cloudTs) {
+                merged[existingIdx] = current;
+                return;
+            }
+
+            // If timestamps are equal/unknown, keep local non-empty values.
+            const fallback = { ...item };
+            Object.keys(current).forEach((key) => {
+                if (toText(current[key]).trim() !== '') fallback[key] = current[key];
+            });
+            merged[existingIdx] = fallback;
+            return;
+        }
+
+        const fp = `${item.date}|${item.brand}|${item.series}|${item.steel}|${item.angle}|${item.comments}`;
+        if (!seenNoId.has(fp)) {
+            seenNoId.add(fp);
+            merged.push(item);
+        }
+    });
+
+    return sanitizeHistoryArray(merged);
+}
+
+function applyCloudDeletionDiff(localRecords, prevCloudIds, currentCloudIds, pendingOpsById) {
+    if (!(prevCloudIds instanceof Set) || !(currentCloudIds instanceof Set)) {
+        return { records: localRecords, deletedIds: [] };
+    }
+
+    // Safety: if cloud suddenly became empty, skip mass deletion to avoid destructive false positives.
+    if (prevCloudIds.size > 0 && currentCloudIds.size === 0) {
+        return { records: localRecords, deletedIds: [] };
+    }
+
+    const deletedIds = [];
+    const records = localRecords.filter((item) => {
+        const id = toText(item?.id).trim();
+        if (!id) return true;
+        if (!prevCloudIds.has(id) || currentCloudIds.has(id)) return true;
+
+        const pending = pendingOpsById.get(id);
+        if (!pending) {
+            deletedIds.push(id);
+            return false;
+        }
+
+        // Keep local record if there is a pending local add/update not yet pushed.
+        if (pending.action === 'add' || pending.action === 'update') return true;
+
+        deletedIds.push(id);
+        return false;
+    });
+
+    return { records, deletedIds };
+}
+
+// Fetches History from cloud and merges it with local (never blindly overwrites local state).
 async function syncHistoryFromCloud(showUI = true) {
     const syncBtn = document.getElementById('btn-sync');
     if (showUI && syncBtn) {
@@ -515,33 +958,66 @@ async function syncHistoryFromCloud(showUI = true) {
 
     let success = false;
     try {
-        const res = await fetch(`${GOOGLE_SCRIPT_URL}?token=${API_TOKEN}&sheet=History&_t=${Date.now()}`, { cache: 'no-store' });
-        if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data) && !data.error) {
-                // We got data, overwrite local storage
-                const historyData = data.map(k => ({
-                    id: k.id || k.ID || "",
-                    date: k.Date || k.date || "",
-                    brand: k.Brand || k.brand || "",
-                    series: k.Series || k.series || "",
-                    steel: k.Steel || k.steel || "",
-                    carbon: k["C, %"] || k.carbon || "",
-                    crmov: k["CrMoV, %"] || k.crmov || "",
-                    length: k.Length || k.length || "",
-                    width: k.Width || k.width || "",
-                    angle: k["Sharp. angle (double)"] || k.angle || "",
-                    honingAdd: k["Honing add"] || k.honingAdd || "",
-                    bess: k["BESS g"] || k.bess || "",
-                    comments: k.Comments || k.comments || ""
-                }));
-                // Filter out empty rows often found in gsheets
-                const validHistory = historyData.filter(item => item.id || item.brand);
-                safeSetItem(STORAGE_KEY, JSON.stringify(validHistory));
-                if (typeof renderHistory === 'function') renderHistory();
-                success = true;
+        await flushCloudOutbox();
+        const localHistory = getHistory();
+        const cloudHistory = await fetchCloudHistoryRecords();
+        const cloudMeta = getCloudHistoryMeta();
+        let deletedIdsMap = pruneDeletedIdsMap(getDeletedIdsMap());
+        const currentCloudIds = new Set(cloudHistory.map(item => toText(item.id).trim()).filter(Boolean));
+
+        let mergedHistory = mergeHistoryRecords(localHistory, cloudHistory, deletedIdsMap);
+
+        if (cloudMeta.initialized) {
+            const prevCloudIds = new Set((cloudMeta.cloudIds || []).map(id => toText(id).trim()).filter(Boolean));
+            const pendingOpsById = getPendingHistoryOpsById();
+            const deletionDelta = applyCloudDeletionDiff(mergedHistory, prevCloudIds, currentCloudIds, pendingOpsById);
+            mergedHistory = deletionDelta.records;
+            deletionDelta.deletedIds.forEach((id) => {
+                deletedIdsMap[id] = new Date().toISOString();
+            });
+
+            if (showUI && deletionDelta.deletedIds.length > 0) {
+                showTransientNotice(`Из облака применено удалений: ${deletionDelta.deletedIds.length}.`, 'warn');
+            }
+
+            if (showUI && prevCloudIds.size > 0 && currentCloudIds.size === 0) {
+                showTransientNotice('Облако вернуло пустой журнал: массовое удаление локальных записей пропущено для защиты данных.', 'warn');
             }
         }
+
+        // If a newer cloud record reappears, clear local deletion tombstone for that ID.
+        cloudHistory.forEach((item) => {
+            if (!item.id) return;
+            const deletedAtRaw = toText(deletedIdsMap[item.id]);
+            if (!deletedAtRaw) return;
+            const deletedTs = Date.parse(deletedAtRaw);
+            const itemTs = parseRecordTimestamp(item);
+            if (!isNaN(deletedTs) && itemTs > deletedTs) {
+                delete deletedIdsMap[item.id];
+            }
+        });
+
+        deletedIdsMap = pruneDeletedIdsMap(deletedIdsMap);
+        setDeletedIdsMap(deletedIdsMap);
+        setCloudHistoryMeta({
+            initialized: true,
+            cloudIds: Array.from(currentCloudIds),
+            updatedAt: new Date().toISOString()
+        });
+
+        safeSetItem(STORAGE_KEY, JSON.stringify(mergedHistory));
+        if (typeof renderHistory === 'function') renderHistory();
+
+        if (showUI && !cloudMeta.initialized && cloudHistory.length === 0 && localHistory.length > 0) {
+            showTransientNotice('Облако пустое: локальный журнал сохранен, данные не удалены.', 'warn');
+        }
+        if (showUI) {
+            const pending = getCloudOutbox().length;
+            if (pending > 0) {
+                showTransientNotice(`Не удалось отправить в облако: ${pending} запис(ей). Оставлены в очереди для автоповтора.`, 'warn');
+            }
+        }
+        success = true;
     } catch (e) {
         console.error("History sync failed", e);
         if (showUI) alert("Ошибка сети History: " + e.message);
@@ -616,6 +1092,32 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
     }
 }
 
+function kickCloudSync() {
+    if (!navigator.onLine) return;
+    void flushCloudOutbox();
+    void syncHistoryFromCloud(false);
+}
+
+function startCloudRealtimeSync() {
+    if (cloudPushIntervalId) clearInterval(cloudPushIntervalId);
+    if (cloudPullIntervalId) clearInterval(cloudPullIntervalId);
+
+    cloudPushIntervalId = setInterval(() => {
+        if (!navigator.onLine) return;
+        void flushCloudOutbox();
+    }, CLOUD_PUSH_INTERVAL_MS);
+
+    cloudPullIntervalId = setInterval(() => {
+        if (!navigator.onLine || document.hidden) return;
+        void syncHistoryFromCloud(false);
+    }, CLOUD_PULL_INTERVAL_MS);
+}
+
+window.addEventListener('online', kickCloudSync);
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) kickCloudSync();
+});
+
 // ====== LOCALSTORAGE LOGIC ======
 const STORAGE_KEY = 'staysharp_history';
 
@@ -624,7 +1126,7 @@ function getHistory() {
     if (!data) return [];
     try {
         const parsed = JSON.parse(data);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) return sanitizeHistoryArray(parsed);
     } catch (e) { }
 
     // Self-heal broken history shape/content.
@@ -634,15 +1136,17 @@ function getHistory() {
 }
 
 function saveToHistory(record) {
-    if (!record.id) {
-        record.id = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+    const normalizedRecord = touchHistoryRecord(record, false);
+    if (!normalizedRecord.id) {
+        normalizedRecord.id = Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
     }
+    clearDeletedId(normalizedRecord.id);
     const history = getHistory();
-    history.push(record);
+    history.push(normalizedRecord);
     safeSetItem(STORAGE_KEY, JSON.stringify(history));
     renderHistory();
-    // Push to Google Sheets Cloud Backup
-    pushToCloud(record, "History", "add");
+    enqueueCloudOperation(normalizedRecord, "History", "add");
+    void flushCloudOutbox();
 }
 
 let editIndex = -1;
@@ -656,7 +1160,9 @@ window.deleteRecord = function (index) {
         safeSetItem(STORAGE_KEY, JSON.stringify(history));
         renderHistory();
         if (recordId) {
-            pushToCloud({ id: recordId }, "History", "delete");
+            rememberDeletedId(recordId);
+            enqueueCloudOperation({ id: recordId }, "History", "delete");
+            void flushCloudOutbox();
         }
     }
 };
@@ -1083,9 +1589,17 @@ window.saveRecordClick = function (e) {
         const historyOpts = getHistory();
         const existingRecord = (editIndex >= 0 && historyOpts[editIndex]) ? historyOpts[editIndex] : {};
 
-        const record = {
+        const baseRecord = normalizeHistoryRecord({
             id: editIndex >= 0 ? (existingRecord.id || (Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5))) : (Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5)),
-            date: editIndex >= 0 ? (existingRecord.date || new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })) : new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+            date: editIndex >= 0
+                ? (existingRecord.date || new Date().toLocaleString('ru-RU', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit'
+                }))
+                : new Date().toLocaleString('ru-RU', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit'
+                }),
             brand: brand,
             series: document.getElementById('record-series').value.trim(),
             steel: document.getElementById('record-steel').value.trim(),
@@ -1097,14 +1611,17 @@ window.saveRecordClick = function (e) {
             honingAdd: document.getElementById('record-honing-add').value.trim(),
             bess: document.getElementById('record-bess').value.trim(),
             comments: document.getElementById('record-comments').value.trim()
-        };
+        });
+        const record = touchHistoryRecord(baseRecord, true);
 
         if (editIndex >= 0) {
             // Update existing record
+            clearDeletedId(record.id);
             historyOpts[editIndex] = record;
             safeSetItem(STORAGE_KEY, JSON.stringify(historyOpts));
             renderHistory();
-            pushToCloud(record, "History", "update");
+            enqueueCloudOperation(record, "History", "update");
+            void flushCloudOutbox();
 
             editIndex = -1;
             document.getElementById('btn-save-record').textContent = 'Сохранить в журнал';
@@ -1236,6 +1753,8 @@ renderHistory(); // load on start
 // Auto-sync on startup
 document.addEventListener('DOMContentLoaded', () => {
     syncDatabaseFromCloud(true);
+    startCloudRealtimeSync();
+    kickCloudSync();
     bindResetDbCacheButton();
 });
 
