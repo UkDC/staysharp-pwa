@@ -148,6 +148,10 @@
             </li>
         </ul>
         <div class="sidebar-tools">
+            <button id="btn-db-sync" class="btn-secondary sidebar-tool-btn" type="button"
+                onclick="syncDatabaseFromCloud()">
+                Синхронизировать 🔄
+            </button>
             <button id="btn-reset-db-cache" class="btn-secondary sidebar-tool-btn" type="button">
                 Сбросить кэш БД
             </button>
@@ -407,13 +411,9 @@
 
             <!-- VIEW: DATABASE -->
             <section id="db-view" class="view hidden">
-                <header class="section-header flex-between">
+                <header class="section-header">
                     <div>
                         <h1>Справочник Рекомендуемых Углов</h1>
-                    </div>
-                    <div class="db-actions">
-                        <button id="btn-db-sync" class="btn-secondary"
-                            onclick="syncDatabaseFromCloud()">Синхронизировать 🔄</button>
                     </div>
                 </header>
 

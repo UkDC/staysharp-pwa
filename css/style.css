@@ -358,6 +358,9 @@ body::after {
 }
 
 .sidebar-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding: 10px 14px 14px;
   border-top: 1px solid var(--border-color);
 }
@@ -468,17 +471,6 @@ body::after {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-}
-
-.db-actions {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.db-actions .btn-secondary {
-  width: auto;
-  white-space: nowrap;
 }
 
 /* === PANELS / CARDS === */
@@ -1422,23 +1414,6 @@ input[type="number"] {
   .section-header {
     margin-bottom: 24px;
     padding-left: 40px;
-  }
-
-  #db-view .section-header.flex-between {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  #db-view .section-header h1 {
-    margin-bottom: 0;
-  }
-
-  #db-view .db-actions {
-    width: 100%;
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 8px;
   }
 
   .section-header h1 {
