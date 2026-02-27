@@ -367,8 +367,77 @@ body::after {
 
 .sidebar-tool-btn {
   width: 100%;
-  font-size: 13px;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
   padding: 10px 12px;
+  border-radius: 14px;
+  border-color: rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015));
+}
+
+.sidebar-tool-btn:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-main);
+}
+
+.sidebar-tool-btn:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+
+#btn-db-sync::after,
+#btn-reset-db-cache::after,
+#btn-hard-refresh::after {
+  font-size: 15px;
+  opacity: 0.75;
+  line-height: 1;
+}
+
+#btn-db-sync::after {
+  content: '↻';
+}
+
+#btn-reset-db-cache::after {
+  content: '↺';
+}
+
+#btn-hard-refresh::after {
+  content: '⟳';
+}
+
+#btn-db-sync.is-loading::after {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.32);
+  border-top-color: var(--accent-warm);
+  opacity: 1;
+  animation: syncSpin 0.75s linear infinite;
+}
+
+#btn-db-sync.is-success::after {
+  content: '✓';
+  color: var(--success);
+  opacity: 1;
+}
+
+#btn-db-sync.is-error::after {
+  content: '!';
+  color: #ff8f80;
+  opacity: 1;
+}
+
+@keyframes syncSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* === MAIN CONTENT === */

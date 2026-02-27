@@ -1056,10 +1056,11 @@ async function syncHistoryFromCloud(showUI = true) {
 async function syncDatabaseFromCloud(isAutoSync = false) {
     const syncDbBtn = document.getElementById('btn-db-sync');
 
-    if (syncDbBtn) {
-        syncDbBtn.textContent = '⏳ Синхронизация...';
+    if (syncDbBtn && !isAutoSync) {
+        syncDbBtn.classList.remove('is-success', 'is-error');
+        syncDbBtn.classList.add('is-loading');
+        syncDbBtn.textContent = 'Синхронизация...';
         syncDbBtn.disabled = true;
-        syncDbBtn.style.opacity = '0.7';
     }
 
     let success = false;
@@ -1102,11 +1103,13 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
         }
     }
 
-    if (syncDbBtn) {
-        syncDbBtn.textContent = success ? '✅ Синхронизировано' : '❌ Ошибка';
-        syncDbBtn.style.opacity = '1';
+    if (syncDbBtn && !isAutoSync) {
+        syncDbBtn.classList.remove('is-loading');
+        syncDbBtn.classList.add(success ? 'is-success' : 'is-error');
+        syncDbBtn.textContent = success ? 'Синхронизировано' : 'Ошибка синхронизации';
         setTimeout(() => {
-            syncDbBtn.textContent = 'Синхронизировать 🔄';
+            syncDbBtn.classList.remove('is-success', 'is-error');
+            syncDbBtn.textContent = 'Синхронизировать';
             syncDbBtn.disabled = false;
         }, 2000);
     }
