@@ -502,11 +502,11 @@ modeTabs.forEach(tab => {
         if (currentMode === 'grinding') {
             grindingGroup.classList.remove('hidden');
             honingGroup.classList.add('hidden');
-            resultLabel.textContent = 'USH (Grinding)';
+            resultLabel.textContent = 'USH';
         } else {
             honingGroup.classList.remove('hidden');
             grindingGroup.classList.add('hidden');
-            resultLabel.textContent = 'FVB_H (Honing)';
+            resultLabel.textContent = 'FVB_H';
         }
         calculateLive();
     });
