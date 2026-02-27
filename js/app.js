@@ -53,41 +53,16 @@ function showTransientNotice(message, type = 'info') {
 
     const notice = document.createElement('div');
     notice.id = 'runtime-notice';
+    notice.className = `runtime-notice runtime-notice--${isWarn ? 'warn' : isSuccess ? 'success' : 'info'}`;
+    if (isMobile) {
+        notice.classList.add('runtime-notice--mobile');
+    }
     notice.textContent = message;
-    notice.style.position = 'fixed';
-    notice.style.left = isMobile ? '16px' : 'auto';
-    notice.style.right = '16px';
     notice.style.bottom = (isMobile && sidebarIsOpen)
         ? 'calc(150px + var(--safe-bottom))'
         : 'calc(16px + var(--safe-bottom))';
-    notice.style.maxWidth = isMobile ? 'none' : '360px';
-    notice.style.padding = isSuccess ? '12px 16px' : '11px 14px';
-    notice.style.borderRadius = '14px';
-    notice.style.fontSize = isSuccess ? '14px' : '13px';
-    notice.style.lineHeight = '1.4';
-    notice.style.zIndex = '10001';
-    notice.style.border = isWarn
-        ? '1px solid rgba(251, 191, 36, 0.28)'
-        : isSuccess
-            ? '1px solid rgba(72, 187, 120, 0.22)'
-            : '1px solid rgba(255,255,255,0.14)';
-    notice.style.boxShadow = isSuccess
-        ? '0 12px 34px rgba(0, 0, 0, 0.36), 0 0 18px rgba(72, 187, 120, 0.08)'
-        : '0 10px 30px rgba(0,0,0,0.35)';
-    notice.style.backdropFilter = 'blur(14px) saturate(140%)';
-    notice.style.webkitBackdropFilter = 'blur(14px) saturate(140%)';
-    notice.style.background = isWarn
-        ? 'rgba(46, 34, 7, 0.88)'
-        : isSuccess
-            ? 'linear-gradient(180deg, rgba(17, 28, 24, 0.94), rgba(13, 22, 19, 0.9))'
-            : 'rgba(16, 20, 30, 0.9)';
-    notice.style.color = isWarn ? '#fde68a' : '#e8eaf0';
-    notice.style.textAlign = isSuccess ? 'center' : 'left';
-    notice.style.fontWeight = isSuccess ? '600' : '500';
-    notice.style.letterSpacing = isSuccess ? '0.1px' : '0';
-    notice.style.transform = 'translateY(6px)';
-    notice.style.opacity = '0';
-    notice.style.transition = 'opacity 0.26s ease, transform 0.26s ease';
+    notice.setAttribute('role', 'status');
+    notice.setAttribute('aria-live', isWarn ? 'assertive' : 'polite');
     document.body.appendChild(notice);
 
     requestAnimationFrame(() => {
@@ -97,7 +72,7 @@ function showTransientNotice(message, type = 'info') {
 
     setTimeout(() => {
         notice.style.opacity = '0';
-        notice.style.transform = 'translateY(6px)';
+        notice.style.transform = 'translateY(8px)';
         setTimeout(() => notice.remove(), 300);
     }, isSuccess ? 2200 : 4200);
 }
