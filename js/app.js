@@ -1238,18 +1238,18 @@ function populatePredictDatalists() {
     const seriesEl = document.getElementById('predict-series');
     const steelEl = document.getElementById('predict-steel');
 
-    const currBrand = (brandEl ? brandEl.value : '').trim().toLowerCase();
-    const currSeries = (seriesEl ? seriesEl.value : '').trim().toLowerCase();
-    const currSteel = (steelEl ? steelEl.value : '').trim().toLowerCase();
+    const currBrand = toText(brandEl ? brandEl.value : '').trim().toLowerCase();
+    const currSeries = toText(seriesEl ? seriesEl.value : '').trim().toLowerCase();
+    const currSteel = toText(steelEl ? steelEl.value : '').trim().toLowerCase();
 
     const brands = new Set();
     const series = new Set();
     const steels = new Set();
 
     knives.forEach(k => {
-        const kb = (k.brand || '').toLowerCase();
-        const ks = (k.series || '').toLowerCase();
-        const kst = (k.steel || '').toLowerCase();
+        const kb = toText(k.brand).toLowerCase();
+        const ks = toText(k.series).toLowerCase();
+        const kst = toText(k.steel).toLowerCase();
 
         // Calculate matches loosely based on what is typed so far
         const matchB = !currBrand || kb.includes(currBrand);
@@ -1292,9 +1292,9 @@ function triggerPrediction(e) {
 
     // Вспомогательная функция для проверки одного ножа на соответствие текущим полям
     const isMatch = (k, skipField = null) => {
-        if (skipField !== 'brand' && bVal && (k.brand || '').toLowerCase() !== bVal.toLowerCase()) return false;
-        if (skipField !== 'series' && sVal && (k.series || '').toLowerCase() !== sVal.toLowerCase()) return false;
-        if (skipField !== 'steel' && stVal && (k.steel || '').toLowerCase() !== stVal.toLowerCase()) return false;
+        if (skipField !== 'brand' && bVal && toText(k.brand).toLowerCase() !== bVal.toLowerCase()) return false;
+        if (skipField !== 'series' && sVal && toText(k.series).toLowerCase() !== sVal.toLowerCase()) return false;
+        if (skipField !== 'steel' && stVal && toText(k.steel).toLowerCase() !== stVal.toLowerCase()) return false;
         if (skipField !== 'carbon' && cVal !== '' && parseFloat(k.carbon) !== parseFloat(cVal)) return false;
         if (skipField !== 'crmov' && crVal !== '' && parseFloat(k.CrMoV) !== parseFloat(crVal)) return false;
         return true;
@@ -1313,9 +1313,9 @@ function triggerPrediction(e) {
 
         if (anchorField) {
             let anchorMatches = knives.filter(k => {
-                if (anchorField === 'brand') return (k.brand || '').toLowerCase() === bVal.toLowerCase();
-                if (anchorField === 'series') return (k.series || '').toLowerCase() === sVal.toLowerCase();
-                if (anchorField === 'steel') return (k.steel || '').toLowerCase() === stVal.toLowerCase();
+                if (anchorField === 'brand') return toText(k.brand).toLowerCase() === bVal.toLowerCase();
+                if (anchorField === 'series') return toText(k.series).toLowerCase() === sVal.toLowerCase();
+                if (anchorField === 'steel') return toText(k.steel).toLowerCase() === stVal.toLowerCase();
                 if (anchorField === 'carbon') return parseFloat(k.carbon) === parseFloat(cVal);
                 if (anchorField === 'crmov') return parseFloat(k.CrMoV) === parseFloat(crVal);
                 return true;
@@ -1324,9 +1324,9 @@ function triggerPrediction(e) {
             if (anchorMatches.length > 0) {
                 const isValid = (field, val) => {
                     if (!val) return true;
-                    if (field === 'brand') return anchorMatches.some(k => (k.brand || '').toLowerCase() === val.toLowerCase());
-                    if (field === 'series') return anchorMatches.some(k => (k.series || '').toLowerCase() === val.toLowerCase());
-                    if (field === 'steel') return anchorMatches.some(k => (k.steel || '').toLowerCase() === val.toLowerCase());
+                    if (field === 'brand') return anchorMatches.some(k => toText(k.brand).toLowerCase() === val.toLowerCase());
+                    if (field === 'series') return anchorMatches.some(k => toText(k.series).toLowerCase() === val.toLowerCase());
+                    if (field === 'steel') return anchorMatches.some(k => toText(k.steel).toLowerCase() === val.toLowerCase());
                     if (field === 'carbon') return anchorMatches.some(k => parseFloat(k.carbon) === parseFloat(val));
                     if (field === 'crmov') return anchorMatches.some(k => parseFloat(k.CrMoV) === parseFloat(val));
                     return false;
@@ -1358,9 +1358,9 @@ function triggerPrediction(e) {
         if (uniqueCr.length === 1 && e.target !== crInput) crInput.value = uniqueCr[0];
     }
 
-    const brand = bInput.value.trim().toLowerCase();
-    const series = sInput.value.trim().toLowerCase();
-    const steel = stInput.value.trim().toLowerCase();
+    const brand = toText(bInput.value).trim().toLowerCase();
+    const series = toText(sInput.value).trim().toLowerCase();
+    const steel = toText(stInput.value).trim().toLowerCase();
     const carbonRaw = cInput.value.trim();
     const crmovRaw = crInput.value.trim();
     const carbon = parseFloat(carbonRaw);
@@ -1373,9 +1373,9 @@ function triggerPrediction(e) {
     // Step 1 logic
     if (brand && series && steel) {
         const exact = knives.find(k =>
-            (k.brand || "").toLowerCase() === brand &&
-            (k.series || "").toLowerCase() === series &&
-            (k.steel || "").toLowerCase() === steel
+            toText(k.brand).toLowerCase() === brand &&
+            toText(k.series).toLowerCase() === series &&
+            toText(k.steel).toLowerCase() === steel
         );
         if (exact && exact.angle) {
             foundAngle = parseFloat(exact.angle);
@@ -1396,7 +1396,7 @@ function triggerPrediction(e) {
     }
 
     if (foundAngle === null && brand) {
-        const brandMatch = knives.filter(k => (k.brand || "").toLowerCase() === brand);
+        const brandMatch = knives.filter(k => toText(k.brand).toLowerCase() === brand);
         if (brandMatch.length > 0) {
             const avgs = getAverages(brandMatch);
             if (avgs) {
@@ -1408,7 +1408,7 @@ function triggerPrediction(e) {
     }
 
     if (foundAngle === null && steel) {
-        const steelMatch = knives.filter(k => (k.steel || "").toLowerCase() === steel);
+        const steelMatch = knives.filter(k => toText(k.steel).toLowerCase() === steel);
         if (steelMatch.length > 0) {
             const avgs = getAverages(steelMatch);
             if (avgs) {
@@ -1765,12 +1765,12 @@ function renderDatabase(filter = "") {
     const knives = getKnivesArray();
     if (knives.length === 0) return;
 
-    filter = filter.toLowerCase();
+    filter = toText(filter).toLowerCase();
 
     const filtered = knives.filter(k => {
         if (!filter) return true;
-        const brand = (k.brand || "").toLowerCase();
-        const steel = (k.steel || "").toLowerCase();
+        const brand = toText(k.brand).toLowerCase();
+        const steel = toText(k.steel).toLowerCase();
         return brand.includes(filter) || steel.includes(filter);
     });
 
@@ -1867,35 +1867,53 @@ const modalBody = document.getElementById('modal-body');
 const closeModal = document.querySelector('.modal-close');
 
 function openModal(title, htmlContent) {
+    if (!modal || !modalTitle || !modalBody) return;
     modalTitle.textContent = title;
     modalBody.innerHTML = htmlContent;
     modal.classList.remove('hidden');
 }
+window.openModal = openModal;
 
-closeModal.addEventListener('click', () => {
+function hideInfoModal() {
+    if (!modal) return;
     modal.classList.add('hidden');
-});
+}
+window.closeInfoModal = hideInfoModal;
 
-modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.classList.add('hidden'); // click outside to close
-});
+if (closeModal) {
+    closeModal.addEventListener('click', hideInfoModal);
+}
 
-document.querySelectorAll('.info-icon').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const key = btn.getAttribute('data-key');
-        if (glossary[key]) {
-            openModal(glossary[key].title, `<p>${glossary[key].text}</p>`);
-        }
+if (modal) {
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) hideInfoModal(); // click outside to close
     });
-});
+}
 
-document.querySelectorAll('.schema-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const type = btn.getAttribute('data-schema');
-        if (schemas[type]) {
-            openModal(schemas[type].title, schemas[type].content);
-        }
+function bindInfoButtons() {
+    document.querySelectorAll('.info-icon').forEach(btn => {
+        if (btn.dataset.boundInfo === '1') return;
+        btn.dataset.boundInfo = '1';
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const key = btn.getAttribute('data-key');
+            if (glossary[key]) {
+                openModal(glossary[key].title, `<p>${glossary[key].text}</p>`);
+            }
+        });
     });
-});
+
+    document.querySelectorAll('.schema-btn').forEach(btn => {
+        if (btn.dataset.boundSchema === '1') return;
+        btn.dataset.boundSchema = '1';
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const type = btn.getAttribute('data-schema');
+            if (schemas[type]) {
+                openModal(schemas[type].title, schemas[type].content);
+            }
+        });
+    });
+}
+
+bindInfoButtons();

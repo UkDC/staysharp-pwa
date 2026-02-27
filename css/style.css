@@ -647,7 +647,7 @@ h4 {
 }
 
 .input-group {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 label {
@@ -677,10 +677,10 @@ input[type="text"] {
   background: var(--input-bg);
   border: 1px solid var(--border-color);
   color: var(--text-main);
-  padding: 12px 16px;
+  padding: 7px 10px;
   border-radius: var(--radius-sm);
   font-family: var(--font-body);
-  font-size: 24px;
+  font-size: 16px;
   font-weight: 600;
   transition: all 0.2s ease;
 }
@@ -716,14 +716,14 @@ textarea {
   background: var(--input-bg);
   border: 1px solid var(--border-color);
   color: var(--text-main);
-  padding: 14px;
+  padding: 8px 10px;
   border-radius: var(--radius-sm);
   font-family: var(--font-body);
-  font-size: 16px;
+  font-size: 14px;
   transition: all 0.2s ease;
   resize: vertical;
-  min-height: 80px;
-  line-height: 1.5;
+  min-height: 46px;
+  line-height: 1.4;
 }
 
 textarea:hover {
@@ -763,7 +763,7 @@ input[type="number"] {
 /* === RESULT DISPLAY === */
 .metric-container {
   text-align: center;
-  padding: 8px 0;
+  padding: 2px 0;
 }
 
 .metric-label {
@@ -776,12 +776,12 @@ input[type="number"] {
 
 .metric-value {
   font-family: var(--font-mono);
-  font-size: 72px;
+  font-size: 60px;
   font-weight: 700;
   letter-spacing: -3px;
   color: var(--text-main);
-  line-height: 1.1;
-  margin: 8px 0;
+  line-height: 1;
+  margin: 4px 0;
   position: relative;
   text-shadow: 0 0 60px var(--accent-glow-strong),
     0 0 120px rgba(227, 82, 58, 0.1);
@@ -793,8 +793,8 @@ input[type="number"] {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 200px;
-  height: 200px;
+  width: 150px;
+  height: 150px;
   transform: translate(-50%, -50%);
   background: radial-gradient(circle, var(--accent-glow-strong) 0%, transparent 70%);
   border-radius: 50%;
@@ -1386,14 +1386,15 @@ input[type="number"] {
 
   input[type="number"],
   input[type="text"] {
-    padding: 10px 8px;
-    font-size: 20px;
+    padding: 7px 8px;
+    font-size: 16px;
     font-weight: 600;
   }
 
   textarea {
-    padding: 10px 12px;
-    font-size: 18px;
+    padding: 7px 9px;
+    font-size: 14px;
+    min-height: 44px;
   }
 
   /* Input rows stay horizontal on mobile */
@@ -1413,20 +1414,20 @@ input[type="number"] {
 
   /* Result */
   .metric-container {
-    padding: 4px 0;
+    padding: 2px 0;
   }
 
   .metric-label {
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .metric-value {
-    font-size: 48px;
-    margin: 4px 0;
+    font-size: 40px;
+    margin: 2px 0;
   }
 
   .metric-unit {
-    font-size: 18px;
+    font-size: 15px;
   }
 
   .metric-card .metric-value {
@@ -1480,7 +1481,7 @@ input[type="number"] {
   }
 
   .metric-value {
-    font-size: 44px;
+    font-size: 38px;
   }
 
   .panel {
@@ -1489,8 +1490,8 @@ input[type="number"] {
 
   input[type="number"],
   input[type="text"] {
-    padding: 10px;
-    font-size: 24px;
+    padding: 7px;
+    font-size: 16px;
     font-weight: 600;
   }
 }

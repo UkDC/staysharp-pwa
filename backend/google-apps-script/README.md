@@ -1,28 +1,37 @@
 # Google Apps Script Backend
 
-This folder stores the source-of-truth backend code for StaySharp cloud sync.
+Источник backend-логики синхронизации хранится в `Code.gs`.
 
-## Files
-- `Code.gs` - full web app backend (`doGet`, `doPost`, `onEdit`).
+## Что реализовано
+- `doGet` для чтения `History` и `Database`.
+- `doPost` для записи в `History` (`add/update/delete`).
+- Проверка токена из `Script Properties` (`API_TOKEN`).
+- `last edit wins` по полю `UpdatedAt`.
+- Идемпотентное удаление (`Success: Already deleted`).
+- `onEdit` для автозаполнения `ID`, `Date`, `UpdatedAt` при ручном вводе.
 
-## One-time setup
-1. Open your Apps Script project.
-2. Copy content of `Code.gs` from this folder into Apps Script editor.
-3. In `Project Settings -> Script Properties`, set:
+## Обязательная шапка листа History
+Рекомендуемые колонки:
+
+`ID | Date | Brand | Series | Steel | C, % | CrMoV, % | Length | Width | Sharp. angle (double) | Honing add | BESS g | Comments | UpdatedAt`
+
+## Установка
+1. Откройте Apps Script проекта Google Sheet.
+2. Полностью замените содержимое скрипта кодом из `Code.gs`.
+3. В `Project Settings -> Script Properties` добавьте:
    - key: `API_TOKEN`
    - value: `StaySharp_Secure_Token_2026`
-4. In `History` sheet ensure headers exist, including `UpdatedAt`.
 
-## Deploy
-1. `Deploy -> Manage deployments`
-2. Edit active web app deployment.
-3. Select `New version`.
-4. `Execute as`: `Me`
-5. `Who has access`: `Anyone` (or `Anyone with the link`)
-6. `Deploy`
+## Деплой
+1. `Deploy -> Manage deployments`.
+2. Редактируйте активный `Web app`.
+3. Выберите `New version`.
+4. `Execute as`: `Me`.
+5. `Who has access`: `Anyone` (или `Anyone with the link`).
+6. `Deploy`.
 
-## Quick verification
-1. GET check:
+## Проверка
+1. GET:
    - `.../exec?token=StaySharp_Secure_Token_2026&sheet=History`
-2. Save a record from PWA.
-3. Verify row appears in `History`.
+2. Создайте запись в PWA.
+3. Убедитесь, что строка появилась в `History`.
