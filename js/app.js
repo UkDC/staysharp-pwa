@@ -596,7 +596,16 @@ const STORAGE_KEY = 'staysharp_history';
 
 function getHistory() {
     const data = safeGetItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
+    if (!data) return [];
+    try {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed)) return parsed;
+    } catch (e) { }
+
+    // Self-heal broken history shape/content.
+    safeSetItem(STORAGE_KEY, JSON.stringify([]));
+    showTransientNotice('Локальная история повреждена и автоматически сброшена.', 'warn');
+    return [];
 }
 
 function saveToHistory(record) {
@@ -1005,8 +1014,6 @@ let lastSaveEventAt = 0;
 const SAVE_EVENT_DEDUP_MS = 700;
 
 window.saveRecordClick = function (e) {
-    console.log("!!! saveRecordClick TRIGGERED !!! Type:", e ? e.type : 'manual');
-
     // iOS PWA may fire touch + click for the same tap; keep only first event.
     const eventType = e && e.type ? e.type : '';
     if (eventType) {
@@ -1107,31 +1114,12 @@ function bindSaveRecordButton() {
     const onSaveTap = (event) => window.saveRecordClick(event);
     saveBtn.addEventListener('click', onSaveTap);
     saveBtn.addEventListener('touchend', onSaveTap, { passive: false });
-    saveBtn.addEventListener('pointerup', onSaveTap);
     saveBtn.dataset.saveBound = '1';
-    console.log("Handler attached to #btn-save-record");
 }
 
 // Bind immediately (script is loaded at the end of body) and also on page restore.
 bindSaveRecordButton();
 window.addEventListener('pageshow', bindSaveRecordButton);
-
-// Global capture fallback: catches edge cases where a top overlay or browser quirk swallows normal listeners.
-document.addEventListener('click', (event) => {
-    const saveBtn = document.getElementById('btn-save-record');
-    if (!saveBtn) return;
-
-    const target = event.target;
-    if (target === saveBtn || (target && saveBtn.contains(target))) return;
-
-    const rect = saveBtn.getBoundingClientRect();
-    const x = event.clientX;
-    const y = event.clientY;
-    const insideButton = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
-    if (!insideButton) return;
-
-    window.saveRecordClick(event);
-}, true);
 
 function resetDatabaseCacheWithDefaults() {
     const defaults = (typeof allKnives !== 'undefined' && Array.isArray(allKnives))
@@ -1216,7 +1204,6 @@ renderHistory(); // load on start
 // Auto-sync on startup
 document.addEventListener('DOMContentLoaded', () => {
     syncDatabaseFromCloud(true);
-    bindSaveRecordButton();
     bindResetDbCacheButton();
 });
 
