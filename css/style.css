@@ -681,7 +681,7 @@ input[type="text"] {
   padding: 7px 10px;
   border-radius: var(--radius-sm);
   font-family: var(--font-body);
-  font-size: 19px;
+  font-size: 22px;
   font-weight: 600;
   transition: all 0.2s ease;
 }
@@ -1388,7 +1388,7 @@ input[type="number"] {
   input[type="number"],
   input[type="text"] {
     padding: 7px 8px;
-    font-size: 19px;
+    font-size: 22px;
     font-weight: 600;
   }
 
@@ -1492,7 +1492,7 @@ input[type="number"] {
   input[type="number"],
   input[type="text"] {
     padding: 7px;
-    font-size: 19px;
+    font-size: 22px;
     font-weight: 600;
   }
 }
