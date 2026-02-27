@@ -406,11 +406,11 @@ body::after {
 }
 
 #btn-reset-db-cache::after {
-  content: '↺';
+  content: '↻';
 }
 
 #btn-hard-refresh::after {
-  content: '⟳';
+  content: '↻';
 }
 
 .sidebar-tool-btn.is-loading::after,
