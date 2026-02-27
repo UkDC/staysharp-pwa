@@ -835,35 +835,12 @@ async function pushToCloud(record, sheetName = "History", action = "add") {
     throw new Error(`Unexpected cloud response: ${responseText.slice(0, 120)}`);
 }
 
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 async function fetchCloudHistoryRecords() {
     const res = await fetch(`${GOOGLE_SCRIPT_URL}?token=${API_TOKEN}&sheet=History&_t=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`Cloud History HTTP ${res.status}`);
     const data = await res.json();
     if (!Array.isArray(data) || data.error) throw new Error('Cloud History returned invalid payload');
     return sanitizeHistoryArray(data);
-}
-
-async function confirmHistoryOperation(op, attempts = 3) {
-    if (!op || !op.record || !op.record.id) return false;
-    const id = toText(op.record.id).trim();
-    if (!id) return false;
-
-    for (let i = 0; i < attempts; i += 1) {
-        const cloudHistory = await fetchCloudHistoryRecords();
-        const exists = cloudHistory.some(item => item.id === id);
-        if (op.action === 'delete') {
-            if (!exists) return true;
-        } else if (exists) {
-            return true;
-        }
-        await sleep(500);
-    }
-
-    return false;
 }
 
 async function flushCloudOutbox() {
@@ -877,12 +854,6 @@ async function flushCloudOutbox() {
         for (const op of queue) {
             try {
                 await pushToCloud(op.record, op.sheetName, op.action);
-                if (op.sheetName === 'History') {
-                    const confirmed = await confirmHistoryOperation(op);
-                    if (!confirmed) {
-                        throw new Error('Cloud did not confirm this operation');
-                    }
-                }
                 sent += 1;
             } catch (e) {
                 failed.push(op);
