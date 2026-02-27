@@ -1119,7 +1119,7 @@ select.predict-select {
   padding: 8px 10px;
   border-radius: var(--radius-sm);
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   transition: all 0.2s ease;
   appearance: none;
@@ -1786,7 +1786,7 @@ select.predict-select:focus {
 
   select.predict-select {
     min-height: 42px;
-    font-size: 15px;
+    font-size: 14px;
   }
 
   /* Compact panels */
