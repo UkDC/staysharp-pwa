@@ -597,6 +597,81 @@ body::after {
   flex-wrap: wrap;
 }
 
+.history-pull-indicator {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  margin: -4px 0 10px;
+  transition: max-height 0.2s ease, opacity 0.2s ease;
+}
+
+.history-pull-indicator.is-visible {
+  opacity: 1;
+}
+
+.history-pull-indicator-inner {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(14, 20, 32, 0.72);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+}
+
+.history-pull-indicator.is-ready .history-pull-indicator-inner {
+  border-color: rgba(227, 82, 58, 0.3);
+  color: var(--accent-warm);
+}
+
+.history-pull-indicator.is-loading .history-pull-indicator-inner {
+  color: var(--text-main);
+  border-color: rgba(227, 82, 58, 0.28);
+  box-shadow: inset 0 0 0 1px rgba(227, 82, 58, 0.08);
+}
+
+.history-pull-indicator.is-loading .history-pull-indicator-inner::after {
+  content: '';
+  width: 14px;
+  height: 14px;
+  margin-left: 10px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  border-top-color: var(--accent-warm);
+  border-right-color: rgba(255, 189, 89, 0.9);
+  box-shadow: 0 0 10px rgba(227, 82, 58, 0.25);
+  animation: actionSpin 0.75s linear infinite, syncPulse 1.4s ease-in-out infinite;
+}
+
+.history-pull-indicator.is-success .history-pull-indicator-inner,
+.history-pull-indicator.is-error .history-pull-indicator-inner {
+  color: var(--text-main);
+}
+
+.history-pull-indicator.is-success .history-pull-indicator-inner::after,
+.history-pull-indicator.is-error .history-pull-indicator-inner::after {
+  margin-left: 10px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.history-pull-indicator.is-success .history-pull-indicator-inner::after {
+  content: '✓';
+  color: var(--success);
+}
+
+.history-pull-indicator.is-error .history-pull-indicator-inner::after {
+  content: '!';
+  color: var(--accent-warm);
+}
+
 /* === PANELS / CARDS === */
 .panel {
   background: var(--bg-surface);

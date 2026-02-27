@@ -1000,11 +1000,82 @@ function applyCloudDeletionDiff(localRecords, prevCloudIds, currentCloudIds, pen
     return { records, deletedIds };
 }
 
+const HISTORY_PULL_THRESHOLD = 72;
+const HISTORY_PULL_MAX = 108;
+const historyPullState = {
+    dragging: false,
+    ready: false,
+    startY: 0,
+    distance: 0,
+    isSyncing: false
+};
+
+function getHistoryPullIndicatorRefs() {
+    const wrap = document.getElementById('history-pull-indicator');
+    const label = document.getElementById('history-pull-indicator-label');
+    return { wrap, label };
+}
+
+function setHistoryPullIndicatorState(state = 'hidden', distance = 0) {
+    const { wrap, label } = getHistoryPullIndicatorRefs();
+    if (!wrap || !label) return;
+
+    wrap.classList.remove('is-visible', 'is-ready', 'is-loading', 'is-success', 'is-error');
+
+    if (state === 'hidden') {
+        wrap.style.maxHeight = '0px';
+        return;
+    }
+
+    wrap.classList.add('is-visible');
+    wrap.style.maxHeight = `${Math.max(42, distance)}px`;
+
+    if (state === 'pull') {
+        label.textContent = 'Потяните вниз для обновления';
+        return;
+    }
+
+    if (state === 'ready') {
+        wrap.classList.add('is-ready');
+        label.textContent = 'Отпустите для синхронизации';
+        return;
+    }
+
+    if (state === 'loading') {
+        wrap.classList.add('is-loading');
+        wrap.style.maxHeight = '46px';
+        label.textContent = 'Синхронизация журнала';
+        return;
+    }
+
+    if (state === 'success') {
+        wrap.classList.add('is-success');
+        wrap.style.maxHeight = '46px';
+        label.textContent = 'Журнал обновлен';
+        return;
+    }
+
+    if (state === 'error') {
+        wrap.classList.add('is-error');
+        wrap.style.maxHeight = '46px';
+        label.textContent = 'Ошибка синхронизации';
+    }
+}
+
+function isHistoryViewActive() {
+    const historyView = document.getElementById('history-view');
+    return !!historyView && historyView.classList.contains('active');
+}
+
 // Fetches History from cloud and merges it with local (never blindly overwrites local state).
 async function syncHistoryFromCloud(showUI = true) {
     const syncBtn = document.getElementById('btn-sync');
     if (showUI && syncBtn) {
         setSidebarToolButtonState(syncBtn, 'loading', SYNC_ACTION_LABEL);
+    }
+    if (showUI && !syncBtn && isHistoryViewActive()) {
+        historyPullState.isSyncing = true;
+        setHistoryPullIndicatorState('loading');
     }
 
     let success = false;
@@ -1079,6 +1150,19 @@ async function syncHistoryFromCloud(showUI = true) {
         setTimeout(() => {
             setSidebarToolButtonState(syncBtn, 'default', SYNC_ACTION_LABEL);
         }, 2000);
+    }
+
+    if (showUI && !syncBtn && historyPullState.isSyncing) {
+        if (isHistoryViewActive()) {
+            setHistoryPullIndicatorState(success ? 'success' : 'error');
+            setTimeout(() => {
+                historyPullState.isSyncing = false;
+                setHistoryPullIndicatorState('hidden');
+            }, 1400);
+        } else {
+            historyPullState.isSyncing = false;
+            setHistoryPullIndicatorState('hidden');
+        }
     }
 }
 
@@ -2064,11 +2148,82 @@ function bindHardRefreshButton() {
     refreshBtn.dataset.bound = '1';
 }
 
+function bindHistoryPullToRefresh() {
+    const contentArea = document.querySelector('.content-area');
+    if (!contentArea || contentArea.dataset.historyPullBound === '1') return;
+
+    const resetPullGesture = () => {
+        historyPullState.dragging = false;
+        historyPullState.ready = false;
+        historyPullState.startY = 0;
+        historyPullState.distance = 0;
+
+        if (!historyPullState.isSyncing) {
+            setHistoryPullIndicatorState('hidden');
+        }
+    };
+
+    contentArea.addEventListener('touchstart', (event) => {
+        if (historyPullState.isSyncing || !isHistoryViewActive() || contentArea.scrollTop > 0 || event.touches.length !== 1) {
+            resetPullGesture();
+            return;
+        }
+
+        historyPullState.dragging = true;
+        historyPullState.ready = false;
+        historyPullState.startY = event.touches[0].clientY;
+        historyPullState.distance = 0;
+        setHistoryPullIndicatorState('pull', 42);
+    }, { passive: true });
+
+    contentArea.addEventListener('touchmove', (event) => {
+        if (!historyPullState.dragging || historyPullState.isSyncing || !isHistoryViewActive()) return;
+
+        const deltaY = event.touches[0].clientY - historyPullState.startY;
+        if (deltaY <= 0) {
+            resetPullGesture();
+            return;
+        }
+
+        const distance = Math.min(HISTORY_PULL_MAX, deltaY * 0.5);
+        historyPullState.distance = distance;
+        historyPullState.ready = distance >= HISTORY_PULL_THRESHOLD;
+        setHistoryPullIndicatorState(historyPullState.ready ? 'ready' : 'pull', distance);
+
+        if (contentArea.scrollTop <= 0) {
+            event.preventDefault();
+        }
+    }, { passive: false });
+
+    contentArea.addEventListener('touchend', () => {
+        if (!historyPullState.dragging) return;
+
+        const shouldSync = historyPullState.ready && !historyPullState.isSyncing && isHistoryViewActive();
+        historyPullState.dragging = false;
+        historyPullState.ready = false;
+        historyPullState.startY = 0;
+        historyPullState.distance = 0;
+
+        if (shouldSync) {
+            void syncHistoryFromCloud(true);
+            return;
+        }
+
+        setHistoryPullIndicatorState('hidden');
+    });
+
+    contentArea.addEventListener('touchcancel', resetPullGesture);
+
+    contentArea.dataset.historyPullBound = '1';
+}
+
 window.resetDatabaseCache = resetDatabaseCacheWithDefaults;
 bindResetDbCacheButton();
 bindHardRefreshButton();
+bindHistoryPullToRefresh();
 window.addEventListener('pageshow', bindResetDbCacheButton);
 window.addEventListener('pageshow', bindHardRefreshButton);
+window.addEventListener('pageshow', bindHistoryPullToRefresh);
 
 
 
