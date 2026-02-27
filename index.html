@@ -334,8 +334,8 @@
                         </div>
 
                         <button id="btn-save-record" class="btn-primary" type="button"
-                            style="position: relative; z-index: 1000;"
-                            onclick="if(window.saveRecordClick) window.saveRecordClick(event)">
+                            onclick="if (window.saveRecordClick) window.saveRecordClick(event);"
+                            style="position: relative; z-index: 1000;">
                             Сохранить в журнал
                         </button>
                         <button id="btn-cancel-edit" class="btn-secondary hidden"
@@ -531,8 +531,8 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/knives.js?v=122"></script>
-    <script src="js/app.js?v=122"></script>
+    <script src="js/knives.js?v=123"></script>
+    <script src="js/app.js?v=123"></script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then(reg => {

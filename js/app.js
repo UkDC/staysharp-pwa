@@ -1,8 +1,37 @@
 // ====== STATE ======
 let currentMode = 'grinding';
 
+// Storage wrapper: keeps app working when localStorage is restricted (private mode / strict policies).
+const memoryStore = {};
+let storageFallbackLogged = false;
+
+function safeGetItem(key) {
+    try {
+        return localStorage.getItem(key);
+    } catch (e) {
+        if (!storageFallbackLogged) {
+            console.warn('localStorage unavailable, using in-memory fallback.');
+            storageFallbackLogged = true;
+        }
+        return Object.prototype.hasOwnProperty.call(memoryStore, key) ? memoryStore[key] : null;
+    }
+}
+
+function safeSetItem(key, value) {
+    const stringValue = String(value);
+    try {
+        localStorage.setItem(key, stringValue);
+    } catch (e) {
+        if (!storageFallbackLogged) {
+            console.warn('localStorage unavailable, using in-memory fallback.');
+            storageFallbackLogged = true;
+        }
+        memoryStore[key] = stringValue;
+    }
+}
+
 // Load cached database if exists, otherwise uses allKnives from knives.js
-const localDb = localStorage.getItem('staysharp_database');
+const localDb = safeGetItem('staysharp_database');
 if (localDb) {
     try {
         window.allKnives = JSON.parse(localDb);
@@ -90,11 +119,11 @@ const TAB_ORDER_KEY = 'staysharp_tab_order';
 function saveTabOrder() {
     const items = navLinksContainer.querySelectorAll('li');
     const order = Array.from(items).map(li => li.getAttribute('data-target'));
-    localStorage.setItem(TAB_ORDER_KEY, JSON.stringify(order));
+    safeSetItem(TAB_ORDER_KEY, JSON.stringify(order));
 }
 
 function restoreTabOrder() {
-    const saved = localStorage.getItem(TAB_ORDER_KEY);
+    const saved = safeGetItem(TAB_ORDER_KEY);
     if (!saved) return;
 
     try {
@@ -376,7 +405,7 @@ async function syncHistoryFromCloud(showUI = true) {
                 }));
                 // Filter out empty rows often found in gsheets
                 const validHistory = historyData.filter(item => item.id || item.brand);
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(validHistory));
+                safeSetItem(STORAGE_KEY, JSON.stringify(validHistory));
                 if (typeof renderHistory === 'function') renderHistory();
                 success = true;
             }
@@ -424,7 +453,7 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
                     comments: k.Comments || k.comments || "",
                     category: k.Category || k.category || "custom"
                 }));
-                localStorage.setItem('staysharp_database', JSON.stringify(window.allKnives));
+                safeSetItem('staysharp_database', JSON.stringify(window.allKnives));
                 renderDatabase();
                 success = true;
             } else if (Array.isArray(data) && data.length === 0) {
@@ -459,7 +488,7 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
 const STORAGE_KEY = 'staysharp_history';
 
 function getHistory() {
-    const data = localStorage.getItem(STORAGE_KEY);
+    const data = safeGetItem(STORAGE_KEY);
     return data ? JSON.parse(data) : [];
 }
 
@@ -469,7 +498,7 @@ function saveToHistory(record) {
     }
     const history = getHistory();
     history.push(record);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+    safeSetItem(STORAGE_KEY, JSON.stringify(history));
     renderHistory();
     // Push to Google Sheets Cloud Backup
     pushToCloud(record, "History", "add");
@@ -483,7 +512,7 @@ window.deleteRecord = function (index) {
         const history = getHistory();
         const recordId = history[index].id;
         history.splice(index, 1);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+        safeSetItem(STORAGE_KEY, JSON.stringify(history));
         renderHistory();
         if (recordId) {
             pushToCloud({ id: recordId }, "History", "delete");
@@ -554,9 +583,13 @@ function populatePredictDatalists() {
     const sList = document.getElementById('series-list');
     const stList = document.getElementById('steel-list');
 
-    const currBrand = (document.getElementById('predict-brand')?.value || '').trim().toLowerCase();
-    const currSeries = (document.getElementById('predict-series')?.value || '').trim().toLowerCase();
-    const currSteel = (document.getElementById('predict-steel')?.value || '').trim().toLowerCase();
+    const brandEl = document.getElementById('predict-brand');
+    const seriesEl = document.getElementById('predict-series');
+    const steelEl = document.getElementById('predict-steel');
+
+    const currBrand = (brandEl ? brandEl.value : '').trim().toLowerCase();
+    const currSeries = (seriesEl ? seriesEl.value : '').trim().toLowerCase();
+    const currSteel = (steelEl ? steelEl.value : '').trim().toLowerCase();
 
     const brands = new Set();
     const series = new Set();
@@ -859,13 +892,26 @@ document.getElementById('btn-predict-apply').addEventListener('click', () => {
 });
 
 let isSavingRecord = false;
+let lastSaveEventAt = 0;
+const SAVE_EVENT_DEDUP_MS = 700;
 
 window.saveRecordClick = function (e) {
-    console.log("saveRecordClick FIRED!", e ? e.type : 'manual');
-    // alert("DEBUG: saveRecordClick start. Type: " + (e ? e.type : 'manual'));
+    console.log("!!! saveRecordClick TRIGGERED !!! Type:", e ? e.type : 'manual');
+
+    // iOS PWA may fire touch + click for the same tap; keep only first event.
+    const eventType = e && e.type ? e.type : '';
+    if (eventType) {
+        const now = Date.now();
+        if (now - lastSaveEventAt < SAVE_EVENT_DEDUP_MS) {
+            return;
+        }
+        lastSaveEventAt = now;
+    }
 
     if (e) {
-        if (e.type !== 'touchstart') {
+        // Only prevent default if it's not a touch event that might be needed for scrolling
+        // But for a button type="button", preventDefault is mostly harmless.
+        if (e.type === 'click' || e.type === 'touchend') {
             e.preventDefault();
         }
         e.stopPropagation();
@@ -908,7 +954,7 @@ window.saveRecordClick = function (e) {
         if (editIndex >= 0) {
             // Update existing record
             historyOpts[editIndex] = record;
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(historyOpts));
+            safeSetItem(STORAGE_KEY, JSON.stringify(historyOpts));
             renderHistory();
             pushToCloud(record, "History", "update");
 
@@ -945,10 +991,22 @@ window.saveRecordClick = function (e) {
     }
 };
 
-const saveBtnObj = document.getElementById('btn-save-record');
-if (saveBtnObj) {
-    saveBtnObj.addEventListener('click', window.saveRecordClick);
+function bindSaveRecordButton() {
+    const saveBtn = document.getElementById('btn-save-record');
+    if (!saveBtn || saveBtn.dataset.saveBound === '1') return;
+
+    const onSaveTap = (event) => window.saveRecordClick(event);
+    saveBtn.addEventListener('click', onSaveTap);
+    saveBtn.addEventListener('touchend', onSaveTap, { passive: false });
+    saveBtn.dataset.saveBound = '1';
+    console.log("Handler attached to #btn-save-record");
 }
+
+// Bind immediately (script is loaded at the end of body) and also on page restore.
+bindSaveRecordButton();
+window.addEventListener('pageshow', bindSaveRecordButton);
+
+
 
 function renderHistory() {
     const history = getHistory();
@@ -1000,6 +1058,7 @@ renderHistory(); // load on start
 // Auto-sync on startup
 document.addEventListener('DOMContentLoaded', () => {
     syncDatabaseFromCloud(true);
+    bindSaveRecordButton();
 });
 
 function renderDatabase(filter = "") {
