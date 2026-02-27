@@ -394,7 +394,7 @@ body::after {
 #btn-db-sync::after,
 #btn-reset-db-cache::after,
 #btn-hard-refresh::after {
-  font-size: 15px;
+  font-size: 18px;
   opacity: 0.75;
   line-height: 1;
 }
@@ -413,10 +413,10 @@ body::after {
 
 #btn-db-sync.is-loading::after {
   content: '';
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.32);
+  border: 2.2px solid rgba(255, 255, 255, 0.32);
   border-top-color: var(--accent-warm);
   opacity: 1;
   animation: syncSpin 0.75s linear infinite;
