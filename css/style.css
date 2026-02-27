@@ -878,6 +878,22 @@ input[type="text"]:focus {
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
+input[type="number"]::placeholder,
+input[type="text"]::placeholder,
+textarea::placeholder {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+input[type="number"]::-webkit-input-placeholder,
+input[type="text"]::-webkit-input-placeholder,
+textarea::-webkit-input-placeholder {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
 /* Keep machine/default constants visually quieter */
 #input-c1,
 #input-c2,
