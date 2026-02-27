@@ -18,6 +18,10 @@ var SHEET_DATABASE = 'Database';
 
 var ALLOWED_READ_SHEETS = [SHEET_HISTORY, SHEET_DATABASE];
 var ALLOWED_WRITE_SHEETS = [SHEET_HISTORY];
+var CACHE_KEY_PREFIX = 'sheet_json_v1:';
+var CACHE_MAX_PAYLOAD_CHARS = 90000;
+var CACHE_TTL_HISTORY_SEC = 12;
+var CACHE_TTL_DATABASE_SEC = 45;
 
 // Canonical fields -> acceptable header/key aliases
 var FIELD_ALIASES = {
@@ -50,6 +54,11 @@ function doGet(e) {
       return jsonOut_({ error: 'Forbidden: Not allowed to read this sheet' });
     }
 
+    var cachedPayload = getCachedSheetPayload_(sheetName);
+    if (cachedPayload) {
+      return jsonTextOut_(cachedPayload);
+    }
+
     var sheet = getSheet_(sheetName);
     if (!sheet) {
       return jsonOut_({ error: 'Sheet not found: ' + sheetName });
@@ -57,6 +66,7 @@ function doGet(e) {
 
     var values = sheet.getDataRange().getValues();
     if (values.length < 2) {
+      putCachedSheetPayload_(sheetName, '[]');
       return jsonOut_([]);
     }
 
@@ -75,7 +85,9 @@ function doGet(e) {
       out.push(obj);
     }
 
-    return jsonOut_(out);
+    var payload = JSON.stringify(out);
+    putCachedSheetPayload_(sheetName, payload);
+    return jsonTextOut_(payload);
   } catch (err) {
     return jsonOut_({ error: err.message || String(err) });
   }
@@ -153,9 +165,11 @@ function doPost(e) {
 
       if (targetRow > 0) {
         sheet.getRange(targetRow, 1, 1, rowData.length).setValues([rowData]);
+        invalidateSheetCache_(sheetName);
         return textOut_('Success: Updated');
       } else {
         sheet.appendRow(rowData);
+        invalidateSheetCache_(sheetName);
         return textOut_('Success: Added');
       }
     }
@@ -172,6 +186,7 @@ function doPost(e) {
       var rowToDelete = findRowById_(values, idColIndex, record.id);
       if (rowToDelete > 0) {
         sheet.deleteRow(rowToDelete);
+        invalidateSheetCache_(sheetName);
         return textOut_('Success: Deleted');
       }
 
@@ -194,7 +209,14 @@ function onEdit(e) {
     if (!e || !e.range) return;
 
     var sh = e.range.getSheet();
-    if (!sh || sh.getName() !== SHEET_HISTORY) return;
+    if (!sh) return;
+
+    var sheetName = sh.getName();
+    if (sheetName !== SHEET_HISTORY && sheetName !== SHEET_DATABASE) return;
+
+    invalidateSheetCache_(sheetName);
+
+    if (sheetName !== SHEET_HISTORY) return;
 
     var row = e.range.getRow();
     if (row < 2) return; // skip header
@@ -243,6 +265,37 @@ function isAuthorized_(token) {
 
 function getSheet_(name) {
   return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+}
+
+function getSheetCacheTtl_(sheetName) {
+  return sheetName === SHEET_DATABASE ? CACHE_TTL_DATABASE_SEC : CACHE_TTL_HISTORY_SEC;
+}
+
+function cacheKeyForSheet_(sheetName) {
+  return CACHE_KEY_PREFIX + String(sheetName || '');
+}
+
+function getCachedSheetPayload_(sheetName) {
+  try {
+    return CacheService.getScriptCache().get(cacheKeyForSheet_(sheetName));
+  } catch (_) {
+    return null;
+  }
+}
+
+function putCachedSheetPayload_(sheetName, payload) {
+  var text = String(payload || '');
+  if (!text || text.length > CACHE_MAX_PAYLOAD_CHARS) return;
+
+  try {
+    CacheService.getScriptCache().put(cacheKeyForSheet_(sheetName), text, getSheetCacheTtl_(sheetName));
+  } catch (_) {}
+}
+
+function invalidateSheetCache_(sheetName) {
+  try {
+    CacheService.getScriptCache().remove(cacheKeyForSheet_(sheetName));
+  } catch (_) {}
 }
 
 function parseRequestData_(e) {
@@ -420,6 +473,12 @@ function generateId_() {
 function jsonOut_(obj) {
   return ContentService
     .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function jsonTextOut_(jsonText) {
+  return ContentService
+    .createTextOutput(String(jsonText || '[]'))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
