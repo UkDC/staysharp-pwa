@@ -255,37 +255,6 @@ body::after {
   transform: rotate(90deg);
 }
 
-.keyboard-dismiss-btn {
-  position: fixed;
-  top: calc(10px + var(--safe-top));
-  right: calc(12px + var(--safe-right));
-  z-index: 210;
-  min-height: 38px;
-  padding: 8px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 999px;
-  background: rgba(16, 20, 30, 0.92);
-  color: var(--text-main);
-  font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-  cursor: pointer;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.26);
-  backdrop-filter: blur(12px) saturate(140%);
-  -webkit-backdrop-filter: blur(12px) saturate(140%);
-  transition: opacity 0.2s ease, transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-}
-
-.keyboard-dismiss-btn:hover {
-  border-color: rgba(255, 255, 255, 0.18);
-  background: rgba(22, 28, 42, 0.94);
-}
-
-.keyboard-dismiss-btn:active {
-  transform: translateY(1px);
-}
-
 /* Nav Links */
 .nav-links {
   list-style: none;
