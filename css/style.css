@@ -609,11 +609,12 @@ h4 {
   background: none;
   border: none;
   color: var(--text-secondary);
-  padding: 10px 8px;
+  padding: 12px 8px;
   border-radius: 10px;
   cursor: pointer;
-  font-weight: 600;
-  font-size: 13px;
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.1;
   font-family: var(--font-body);
   transition: all 0.25s ease;
   position: relative;
@@ -1452,8 +1453,8 @@ input[type="number"] {
 
   /* Tabs */
   .tab-btn {
-    padding: 12px 20px;
-    font-size: 18px;
+    padding: 10px 14px;
+    font-size: 20px;
   }
 
   /* Info icons */
