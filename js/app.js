@@ -1299,11 +1299,16 @@ function clearForm() {
 
 function populatePredictDatalists() {
     const knives = getKnivesArray();
-    if (knives.length === 0) return;
-
     const bList = document.getElementById('brand-list');
     const sList = document.getElementById('series-list');
     const stList = document.getElementById('steel-list');
+
+    if (knives.length === 0) {
+        if (bList) bList.innerHTML = '';
+        if (sList) sList.innerHTML = '';
+        if (stList) stList.innerHTML = '';
+        return;
+    }
 
     const brandEl = document.getElementById('predict-brand');
     const seriesEl = document.getElementById('predict-series');
@@ -1339,27 +1344,82 @@ function populatePredictDatalists() {
 }
 populatePredictDatalists();
 
+function getPredictElements() {
+    return {
+        outWrap: document.getElementById('prediction-out-wrap'),
+        resDiv: document.getElementById('prediction-result'),
+        angleEl: document.getElementById('predict-val-angle'),
+        honingEl: document.getElementById('predict-val-honing'),
+        applyBtn: document.getElementById('btn-predict-apply'),
+        brandEl: document.getElementById('predict-brand'),
+        seriesEl: document.getElementById('predict-series'),
+        steelEl: document.getElementById('predict-steel'),
+        carbonEl: document.getElementById('predict-carbon'),
+        crmovEl: document.getElementById('predict-crmov'),
+        categoryEl: document.getElementById('predict-category')
+    };
+}
+
+function setPredictionState({ visible = false, message = '', tone = 'muted', angle = 0, honing = 0, canApply = false } = {}) {
+    const els = getPredictElements();
+    if (!els.resDiv || !els.outWrap || !els.angleEl || !els.honingEl || !els.applyBtn) return;
+
+    els.resDiv.textContent = message;
+    els.resDiv.style.color = tone === 'accent' ? 'var(--accent-warm)' : 'var(--text-secondary)';
+    els.angleEl.textContent = Number.isFinite(angle) ? angle.toFixed(1) : '0.0';
+    els.honingEl.textContent = Number.isFinite(honing) ? honing.toFixed(1) : '0.0';
+    els.outWrap.classList.toggle('hidden', !visible);
+    els.applyBtn.disabled = !canApply;
+}
+
+function clearPredictionInputs() {
+    const els = getPredictElements();
+    if (els.brandEl) els.brandEl.value = '';
+    if (els.seriesEl) els.seriesEl.value = '';
+    if (els.steelEl) els.steelEl.value = '';
+    if (els.carbonEl) els.carbonEl.value = '';
+    if (els.crmovEl) els.crmovEl.value = '';
+    if (els.categoryEl) els.categoryEl.value = '';
+    populatePredictDatalists();
+    setPredictionState();
+}
+
 function triggerPrediction(e) {
-    const resDiv = document.getElementById('prediction-result');
+    const els = getPredictElements();
+    const resDiv = els.resDiv;
     const knives = getKnivesArray();
+    if (!resDiv) return;
+
     if (knives.length === 0) {
-        resDiv.textContent = 'База данных не загружена.';
+        setPredictionState({
+            visible: true,
+            message: 'Справочник пока не загружен. Сначала обновите базу ножей.',
+            tone: 'muted'
+        });
         return;
     }
 
     const isDeleting = e && e.inputType && e.inputType.startsWith('delete');
 
-    const bInput = document.getElementById('predict-brand');
-    const sInput = document.getElementById('predict-series');
-    const stInput = document.getElementById('predict-steel');
-    const cInput = document.getElementById('predict-carbon');
-    const crInput = document.getElementById('predict-crmov');
+    const bInput = els.brandEl;
+    const sInput = els.seriesEl;
+    const stInput = els.steelEl;
+    const cInput = els.carbonEl;
+    const crInput = els.crmovEl;
+    const catInput = els.categoryEl;
 
     let bVal = bInput.value.trim();
     let sVal = sInput.value.trim();
     let stVal = stInput.value.trim();
     let cVal = cInput.value.trim();
     let crVal = crInput.value.trim();
+    const catVal = catInput ? catInput.value.trim() : '';
+
+    if (!bVal && !sVal && !stVal && cVal === '' && crVal === '' && !catVal) {
+        setPredictionState();
+        populatePredictDatalists();
+        return;
+    }
 
     // Вспомогательная функция для проверки одного ножа на соответствие текущим полям
     const isMatch = (k, skipField = null) => {
@@ -1432,6 +1492,7 @@ function triggerPrediction(e) {
     const brand = toText(bInput.value).trim().toLowerCase();
     const series = toText(sInput.value).trim().toLowerCase();
     const steel = toText(stInput.value).trim().toLowerCase();
+    const category = catVal.toLowerCase();
     const carbonRaw = cInput.value.trim();
     const crmovRaw = crInput.value.trim();
     const carbon = parseFloat(carbonRaw);
@@ -1451,7 +1512,7 @@ function triggerPrediction(e) {
         if (exact && exact.angle) {
             foundAngle = parseFloat(exact.angle);
             foundHoning = parseFloat(exact.honing_add || 0);
-            matchType = 'Точное совпадение (Бренд + Серия + Сталь)';
+            matchType = 'Step 1: точное совпадение по Brand + Series + Steel';
         }
     }
 
@@ -1466,28 +1527,27 @@ function triggerPrediction(e) {
         return { angle: avgAngle, honing: avgHoning };
     }
 
+    const setFoundByAverage = (records, label) => {
+        if (foundAngle !== null || records.length === 0) return;
+        const avgs = getAverages(records);
+        if (!avgs) return;
+        foundAngle = avgs.angle;
+        foundHoning = avgs.honing;
+        matchType = label;
+    };
+
     if (foundAngle === null && brand) {
-        const brandMatch = knives.filter(k => toText(k.brand).toLowerCase() === brand);
-        if (brandMatch.length > 0) {
-            const avgs = getAverages(brandMatch);
-            if (avgs) {
-                foundAngle = avgs.angle;
-                foundHoning = avgs.honing;
-                matchType = 'Среднее значение по Бренду';
-            }
-        }
+        setFoundByAverage(
+            knives.filter(k => toText(k.brand).toLowerCase() === brand),
+            'Step 1: среднее по бренду'
+        );
     }
 
     if (foundAngle === null && steel) {
-        const steelMatch = knives.filter(k => toText(k.steel).toLowerCase() === steel);
-        if (steelMatch.length > 0) {
-            const avgs = getAverages(steelMatch);
-            if (avgs) {
-                foundAngle = avgs.angle;
-                foundHoning = avgs.honing;
-                matchType = 'Среднее по Стали';
-            }
-        }
+        setFoundByAverage(
+            knives.filter(k => toText(k.steel).toLowerCase() === steel),
+            'Step 1: среднее по стали'
+        );
     }
 
     // Step 2 logic
@@ -1496,71 +1556,61 @@ function triggerPrediction(e) {
         if (exactChem && exactChem.angle) {
             foundAngle = parseFloat(exactChem.angle);
             foundHoning = parseFloat(exactChem.honing_add || 0);
-            matchType = 'Точное совпадение (Углерод и CrMoV)';
+            matchType = 'Step 2: точное совпадение по Carbon + CrMoV';
         }
     }
 
     if (foundAngle === null && !isNaN(carbon)) {
-        const exactC = knives.filter(k => k.carbon && parseFloat(k.carbon) === carbon);
-        if (exactC.length > 0) {
-            const avgs = getAverages(exactC);
-            if (avgs) {
-                foundAngle = avgs.angle;
-                foundHoning = avgs.honing;
-                matchType = 'Среднее по Углероду';
-            }
-        }
+        setFoundByAverage(
+            knives.filter(k => k.carbon && parseFloat(k.carbon) === carbon),
+            'Step 2: среднее по точному Carbon'
+        );
     }
 
     if (foundAngle === null && !isNaN(carbon)) {
-        const closeC = knives.filter(k => k.carbon && Math.abs(parseFloat(k.carbon) - carbon) <= 0.08);
-        if (closeC.length > 0) {
-            const avgs = getAverages(closeC);
-            if (avgs) {
-                foundAngle = avgs.angle;
-                foundHoning = avgs.honing;
-                matchType = 'Приблизительное совпадение по Углероду (±0.08)';
-            }
-        }
+        setFoundByAverage(
+            knives.filter(k => k.carbon && Math.abs(parseFloat(k.carbon) - carbon) <= 0.08),
+            'Step 2: близкий Carbon (±0.08)'
+        );
+    }
+
+    if (foundAngle === null && category) {
+        setFoundByAverage(
+            knives.filter(k => toText(k.category).toLowerCase() === category),
+            'Step 3: среднее по категории'
+        );
     }
 
     if (foundAngle === null && !isNaN(crmov)) {
-        const exactCr = knives.filter(k => k.CrMoV && parseFloat(k.CrMoV) === crmov);
-        if (exactCr.length > 0) {
-            const avgs = getAverages(exactCr);
-            if (avgs) {
-                foundAngle = avgs.angle;
-                foundHoning = avgs.honing;
-                matchType = 'Среднее по CrMoV%';
-            }
-        }
+        setFoundByAverage(
+            knives.filter(k => k.CrMoV && parseFloat(k.CrMoV) === crmov),
+            'Доп. fallback: точный CrMoV'
+        );
     }
 
     if (foundAngle === null && !isNaN(crmov)) {
-        const closeCr = knives.filter(k => k.CrMoV && Math.abs(parseFloat(k.CrMoV) - crmov) <= 1.0);
-        if (closeCr.length > 0) {
-            const avgs = getAverages(closeCr);
-            if (avgs) {
-                foundAngle = avgs.angle;
-                foundHoning = avgs.honing;
-                matchType = 'Приблизительное совпадение по CrMoV (±1.0%)';
-            }
-        }
+        setFoundByAverage(
+            knives.filter(k => k.CrMoV && Math.abs(parseFloat(k.CrMoV) - crmov) <= 1.0),
+            'Доп. fallback: близкий CrMoV (±1.0)'
+        );
     }
-
-    const outWrap = document.getElementById('prediction-out-wrap');
 
     if (foundAngle !== null) {
-        document.getElementById('predict-val-angle').textContent = foundAngle.toFixed(1);
-        document.getElementById('predict-val-honing').textContent = foundHoning.toFixed(1);
-
-        resDiv.innerHTML = `Найдено (${matchType})`;
-        resDiv.style.color = "var(--accent-warm)";
-        outWrap.classList.remove('hidden');
+        setPredictionState({
+            visible: true,
+            message: matchType,
+            tone: 'accent',
+            angle: foundAngle,
+            honing: foundHoning,
+            canApply: true
+        });
     } else {
-        resDiv.textContent = 'Не удалось найти анализ по введенным данным. Попробуйте уточнить сталь (или % углерода) или бренд.';
-        resDiv.style.color = "var(--text-muted)";
-        outWrap.classList.add('hidden');
+        setPredictionState({
+            visible: true,
+            message: 'Не найдено. Уточните Brand / Steel, введите Carbon + CrMoV или выберите Category.',
+            tone: 'muted',
+            canApply: false
+        });
     }
 
     // Update datalists dynamically
@@ -1570,18 +1620,22 @@ function triggerPrediction(e) {
 // Add event listeners to all predict inputs for instant analysis
 const predictInputs = [
     'predict-brand', 'predict-series', 'predict-steel',
-    'predict-carbon', 'predict-crmov'
+    'predict-carbon', 'predict-crmov', 'predict-category'
 ];
 predictInputs.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener('input', triggerPrediction);
+    if (!el) return;
+    const eventName = el.tagName === 'SELECT' ? 'change' : 'input';
+    el.addEventListener(eventName, triggerPrediction);
 });
 
 const predictApplyBtn = document.getElementById('btn-predict-apply');
 if (predictApplyBtn) {
 predictApplyBtn.addEventListener('click', () => {
+    if (predictApplyBtn.disabled) return;
     const pAngle = parseFloat(document.getElementById('predict-val-angle').textContent);
     const pHoning = parseFloat(document.getElementById('predict-val-honing').textContent);
+    if (!Number.isFinite(pAngle) || !Number.isFinite(pHoning)) return;
 
     // Fill form
     document.getElementById('record-brand').value = document.getElementById('predict-brand').value;
@@ -1608,14 +1662,13 @@ predictApplyBtn.addEventListener('click', () => {
     }, 1000);
 
     // Clear prediction view
-    document.getElementById('predict-brand').value = '';
-    document.getElementById('predict-series').value = '';
-    document.getElementById('predict-steel').value = '';
-    document.getElementById('predict-carbon').value = '';
-    document.getElementById('predict-crmov').value = '';
-    document.getElementById('prediction-result').textContent = '';
-    document.getElementById('prediction-out-wrap').classList.add('hidden');
+    clearPredictionInputs();
 });
+}
+
+const predictResetBtn = document.getElementById('btn-predict-reset');
+if (predictResetBtn) {
+    predictResetBtn.addEventListener('click', clearPredictionInputs);
 }
 
 let isSavingRecord = false;

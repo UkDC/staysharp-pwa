@@ -1012,6 +1012,168 @@ input[type="number"] {
   letter-spacing: 1px;
 }
 
+/* Predict view */
+.predict-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.predict-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top right, rgba(227, 82, 58, 0.08), transparent 34%),
+    radial-gradient(circle at bottom left, rgba(255, 189, 89, 0.06), transparent 32%);
+  pointer-events: none;
+}
+
+.predict-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.predict-intro {
+  margin-bottom: 18px;
+}
+
+.predict-lead {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+  margin-bottom: 12px;
+}
+
+.predict-step-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.predict-step-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.35px;
+  text-transform: uppercase;
+}
+
+.predict-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.predict-grid-top {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.predict-grid-mid {
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.75fr) minmax(0, 0.75fr);
+}
+
+.predict-grid-bottom {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 220px);
+  align-items: end;
+  margin-top: 12px;
+}
+
+.predict-field-wide {
+  min-width: 0;
+}
+
+.predict-actions {
+  display: flex;
+  align-items: stretch;
+}
+
+select.predict-select {
+  width: 100%;
+  min-height: 44px;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+    linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) calc(50% - 3px),
+    calc(100% - 12px) calc(50% - 3px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+
+select.predict-select:hover {
+  background-color: var(--input-bg-hover);
+  border-color: var(--border-hover);
+}
+
+select.predict-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  background-color: rgba(227, 82, 58, 0.04);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.predict-reset-btn {
+  width: 100%;
+  min-height: 44px;
+}
+
+.predict-output {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.predict-result-head {
+  margin-bottom: 16px;
+}
+
+.predict-result-head h3 {
+  color: var(--accent-warm);
+  margin-bottom: 8px;
+}
+
+.predict-result-text {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.predict-metrics-grid {
+  margin-bottom: 22px;
+}
+
+.predict-apply-btn {
+  width: 100%;
+}
+
+.predict-apply-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  box-shadow: none;
+}
+
+.predict-apply-btn:disabled:hover {
+  transform: none;
+}
+
 /* Metric cards for predict */
 .metric-card {
   background: var(--bg-elevated);
@@ -1573,6 +1735,42 @@ input[type="number"] {
   .status-action-btn {
     min-width: 106px;
     font-size: 13px;
+  }
+
+  .predict-lead {
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+
+  .predict-step-chip {
+    font-size: 10px;
+    min-height: 28px;
+    padding: 5px 8px;
+  }
+
+  .predict-grid-top,
+  .predict-grid-mid,
+  .predict-grid-bottom {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .predict-grid-bottom {
+    margin-top: 10px;
+  }
+
+  .predict-output {
+    margin-top: 18px;
+    padding-top: 16px;
+  }
+
+  .predict-result-text {
+    font-size: 14px;
+  }
+
+  select.predict-select {
+    min-height: 42px;
+    font-size: 15px;
   }
 
   /* Compact panels */

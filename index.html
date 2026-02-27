@@ -15,7 +15,7 @@
     <link rel="icon" href="/staysharp-pwa/favicon.ico">
     <link rel="shortcut icon" href="/staysharp-pwa/favicon.ico">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="css/style.css?v=1772216941">
+    <link rel="stylesheet" href="css/style.css?v=1772217931">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -467,15 +467,22 @@
             <!-- VIEW: PREDICT -->
             <section id="predict-view" class="view hidden">
                 <header class="section-header">
-                    <h1>Подбор Угла (Аналитика)</h1>
+                    <h1>Подбор Угла</h1>
                 </header>
 
-                <div class="card panel">
-                    <p class="text-muted" style="margin-bottom: 20px;">Введите данные о ноже. Алгоритм сначала ищет
-                        точные совпадения, а затем анализирует средние значения по бренду, типу стали или химическому
-                        составу.</p>
+                <div class="card panel predict-panel">
+                    <div class="predict-intro">
+                        <p class="predict-lead">Алгоритм повторяет логику базового StaySharp: сначала ищет точное
+                            совпадение, затем средние значения по похожим ножам, и в резерве использует категорию
+                            качества.</p>
+                        <div class="predict-step-strip">
+                            <span class="predict-step-chip">1. Brand / Series / Steel</span>
+                            <span class="predict-step-chip">2. Carbon / CrMoV</span>
+                            <span class="predict-step-chip">3. Category</span>
+                        </div>
+                    </div>
 
-                    <div class="input-row">
+                    <div class="predict-grid predict-grid-top">
                         <div class="input-group">
                             <label for="predict-brand">Brand</label>
                             <input type="text" id="predict-brand" placeholder="Например: Victorinox" list="brand-list">
@@ -487,27 +494,48 @@
                             <datalist id="series-list"></datalist>
                         </div>
                     </div>
-                    <div class="input-row">
-                        <div class="input-group" style="flex: 2;">
+
+                    <div class="predict-grid predict-grid-mid">
+                        <div class="input-group predict-field-wide">
                             <label for="predict-steel">Steel</label>
                             <input type="text" id="predict-steel" placeholder="Например: 440C" list="steel-list">
                             <datalist id="steel-list"></datalist>
                         </div>
-                        <div class="input-group" style="flex: 1;">
+                        <div class="input-group">
                             <label for="predict-carbon">C, %</label>
                             <input type="number" id="predict-carbon" step="0.01">
                         </div>
-                        <div class="input-group" style="flex: 1;">
+                        <div class="input-group">
                             <label for="predict-crmov">CrMoV, %</label>
                             <input type="number" id="predict-crmov" step="0.1">
                         </div>
                     </div>
-                    <div id="prediction-out-wrap" class="hidden"
-                        style="margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border-color);">
-                        <h3 style="color: var(--accent-warm); margin-bottom: 10px;">Результат:</h3>
-                        <p id="prediction-result" style="font-size: 15px; margin-bottom: 20px;"></p>
 
-                        <div class="grid-layout" style="margin-bottom: 25px;">
+                    <div class="predict-grid predict-grid-bottom">
+                        <div class="input-group">
+                            <label for="predict-category">Category</label>
+                            <select id="predict-category" class="predict-select">
+                                <option value="">auto / unknown</option>
+                                <option value="low_quality">low_quality</option>
+                                <option value="medium_quality">medium_quality</option>
+                                <option value="high_quality">high_quality</option>
+                                <option value="premium_quality">premium_quality</option>
+                            </select>
+                        </div>
+                        <div class="predict-actions">
+                            <button id="btn-predict-reset" class="btn-secondary predict-reset-btn" type="button">
+                                Очистить поля
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="prediction-out-wrap" class="predict-output hidden">
+                        <div class="predict-result-head">
+                            <h3>Рекомендация</h3>
+                            <p id="prediction-result" class="predict-result-text"></p>
+                        </div>
+
+                        <div class="grid-layout predict-metrics-grid">
                             <div class="metric-card">
                                 <div class="metric-label">Recommended Angle (double)</div>
                                 <div class="metric-value" id="predict-val-angle">0.0</div>
@@ -520,7 +548,7 @@
                             </div>
                         </div>
 
-                        <button id="btn-predict-apply" class="btn-secondary" style="width: 100%;">
+                        <button id="btn-predict-apply" class="btn-primary predict-apply-btn" type="button" disabled>
                             Применить к станку и создать Профиль
                         </button>
                     </div>
@@ -544,7 +572,7 @@
 
     <!-- Scripts -->
     <script src="js/knives.js?v=124"></script>
-    <script src="js/app.js?v=1772216941"></script>
+    <script src="js/app.js?v=1772217931"></script>
     <script>
         const takeSessionFlag = (key) => {
             try {
