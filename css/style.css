@@ -655,6 +655,29 @@ h4 {
   margin-bottom: 8px;
 }
 
+/* Keep three-column Honing constants row compact and stable on narrow screens */
+.honing-row-3 {
+  gap: 8px;
+}
+
+.honing-row-3 label {
+  flex-wrap: nowrap;
+  column-gap: 3px;
+  row-gap: 0;
+  font-size: 12px;
+}
+
+.honing-row-3 .unit {
+  white-space: nowrap;
+}
+
+.honing-row-3 .info-icon {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
+}
+
 label {
   display: flex;
   align-items: center;
@@ -1415,6 +1438,14 @@ input[type="number"] {
   .input-row {
     flex-direction: row;
     gap: 8px;
+  }
+
+  .honing-row-3 {
+    gap: 6px;
+  }
+
+  .honing-row-3 label {
+    font-size: 11px;
   }
 
   .divider {
