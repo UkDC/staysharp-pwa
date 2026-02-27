@@ -279,6 +279,8 @@ function placeRwInputForMode(mode) {
     if (rwInputGroup.parentElement !== target) {
         target.appendChild(rwInputGroup);
     }
+    rwSlotGrinding.classList.toggle('slot-collapsed', mode === 'honing');
+    rwSlotHoning.classList.toggle('slot-collapsed', mode !== 'honing');
 }
 
 // ====== SIDEBAR TOGGLE ======
