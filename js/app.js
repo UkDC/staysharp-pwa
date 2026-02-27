@@ -32,12 +32,25 @@ function safeSetItem(key, value) {
 
 // Load cached database if exists, otherwise uses allKnives from knives.js
 const localDb = safeGetItem('staysharp_database');
+let parsedLocalDb = null;
 if (localDb) {
     try {
-        window.allKnives = JSON.parse(localDb);
+        parsedLocalDb = JSON.parse(localDb);
     } catch (e) { }
-} else if (typeof allKnives !== 'undefined') {
+}
+
+if (Array.isArray(parsedLocalDb)) {
+    window.allKnives = parsedLocalDb;
+} else if (typeof allKnives !== 'undefined' && Array.isArray(allKnives)) {
     window.allKnives = allKnives;
+}
+
+if (!Array.isArray(window.allKnives)) {
+    window.allKnives = [];
+}
+
+function getKnivesArray() {
+    return Array.isArray(window.allKnives) ? window.allKnives : [];
 }
 
 // DOM Elements
@@ -577,7 +590,8 @@ function clearForm() {
 }
 
 function populatePredictDatalists() {
-    if (typeof window.allKnives === 'undefined') return;
+    const knives = getKnivesArray();
+    if (knives.length === 0) return;
 
     const bList = document.getElementById('brand-list');
     const sList = document.getElementById('series-list');
@@ -595,7 +609,7 @@ function populatePredictDatalists() {
     const series = new Set();
     const steels = new Set();
 
-    window.allKnives.forEach(k => {
+    knives.forEach(k => {
         const kb = (k.brand || '').toLowerCase();
         const ks = (k.series || '').toLowerCase();
         const kst = (k.steel || '').toLowerCase();
@@ -619,7 +633,8 @@ populatePredictDatalists();
 
 function triggerPrediction(e) {
     const resDiv = document.getElementById('prediction-result');
-    if (typeof window.allKnives === 'undefined') {
+    const knives = getKnivesArray();
+    if (knives.length === 0) {
         resDiv.textContent = 'База данных не загружена.';
         return;
     }
@@ -648,7 +663,7 @@ function triggerPrediction(e) {
         return true;
     };
 
-    let matches = window.allKnives.filter(k => isMatch(k));
+    let matches = knives.filter(k => isMatch(k));
 
     // Сброс старых конфликтующих значений
     if (matches.length === 0 && e && e.target && !isDeleting) {
@@ -660,7 +675,7 @@ function triggerPrediction(e) {
         if (e.target === crInput) anchorField = 'crmov';
 
         if (anchorField) {
-            let anchorMatches = window.allKnives.filter(k => {
+            let anchorMatches = knives.filter(k => {
                 if (anchorField === 'brand') return (k.brand || '').toLowerCase() === bVal.toLowerCase();
                 if (anchorField === 'series') return (k.series || '').toLowerCase() === sVal.toLowerCase();
                 if (anchorField === 'steel') return (k.steel || '').toLowerCase() === stVal.toLowerCase();
@@ -688,11 +703,11 @@ function triggerPrediction(e) {
             }
         }
 
-        matches = window.allKnives.filter(k => isMatch(k));
+        matches = knives.filter(k => isMatch(k));
     }
 
     // Авто-заполнение остальных полей
-    if (matches.length > 0 && matches.length !== window.allKnives.length && !isDeleting) {
+    if (matches.length > 0 && matches.length !== knives.length && !isDeleting) {
         const uniqueB = [...new Set(matches.map(k => k.brand))].filter(Boolean);
         const uniqueS = [...new Set(matches.map(k => k.series))].filter(Boolean);
         const uniqueSt = [...new Set(matches.map(k => k.steel))].filter(Boolean);
@@ -720,7 +735,7 @@ function triggerPrediction(e) {
 
     // Step 1 logic
     if (brand && series && steel) {
-        const exact = window.allKnives.find(k =>
+        const exact = knives.find(k =>
             (k.brand || "").toLowerCase() === brand &&
             (k.series || "").toLowerCase() === series &&
             (k.steel || "").toLowerCase() === steel
@@ -744,7 +759,7 @@ function triggerPrediction(e) {
     }
 
     if (foundAngle === null && brand) {
-        const brandMatch = window.allKnives.filter(k => (k.brand || "").toLowerCase() === brand);
+        const brandMatch = knives.filter(k => (k.brand || "").toLowerCase() === brand);
         if (brandMatch.length > 0) {
             const avgs = getAverages(brandMatch);
             if (avgs) {
@@ -756,7 +771,7 @@ function triggerPrediction(e) {
     }
 
     if (foundAngle === null && steel) {
-        const steelMatch = window.allKnives.filter(k => (k.steel || "").toLowerCase() === steel);
+        const steelMatch = knives.filter(k => (k.steel || "").toLowerCase() === steel);
         if (steelMatch.length > 0) {
             const avgs = getAverages(steelMatch);
             if (avgs) {
@@ -769,7 +784,7 @@ function triggerPrediction(e) {
 
     // Step 2 logic
     if (foundAngle === null && !isNaN(carbon) && !isNaN(crmov)) {
-        const exactChem = window.allKnives.find(k => k.carbon && k.CrMoV && parseFloat(k.carbon) === carbon && parseFloat(k.CrMoV) === crmov);
+        const exactChem = knives.find(k => k.carbon && k.CrMoV && parseFloat(k.carbon) === carbon && parseFloat(k.CrMoV) === crmov);
         if (exactChem && exactChem.angle) {
             foundAngle = parseFloat(exactChem.angle);
             foundHoning = parseFloat(exactChem.honing_add || 0);
@@ -778,7 +793,7 @@ function triggerPrediction(e) {
     }
 
     if (foundAngle === null && !isNaN(carbon)) {
-        const exactC = window.allKnives.filter(k => k.carbon && parseFloat(k.carbon) === carbon);
+        const exactC = knives.filter(k => k.carbon && parseFloat(k.carbon) === carbon);
         if (exactC.length > 0) {
             const avgs = getAverages(exactC);
             if (avgs) {
@@ -790,7 +805,7 @@ function triggerPrediction(e) {
     }
 
     if (foundAngle === null && !isNaN(carbon)) {
-        const closeC = window.allKnives.filter(k => k.carbon && Math.abs(parseFloat(k.carbon) - carbon) <= 0.08);
+        const closeC = knives.filter(k => k.carbon && Math.abs(parseFloat(k.carbon) - carbon) <= 0.08);
         if (closeC.length > 0) {
             const avgs = getAverages(closeC);
             if (avgs) {
@@ -802,7 +817,7 @@ function triggerPrediction(e) {
     }
 
     if (foundAngle === null && !isNaN(crmov)) {
-        const exactCr = window.allKnives.filter(k => k.CrMoV && parseFloat(k.CrMoV) === crmov);
+        const exactCr = knives.filter(k => k.CrMoV && parseFloat(k.CrMoV) === crmov);
         if (exactCr.length > 0) {
             const avgs = getAverages(exactCr);
             if (avgs) {
@@ -814,7 +829,7 @@ function triggerPrediction(e) {
     }
 
     if (foundAngle === null && !isNaN(crmov)) {
-        const closeCr = window.allKnives.filter(k => k.CrMoV && Math.abs(parseFloat(k.CrMoV) - crmov) <= 1.0);
+        const closeCr = knives.filter(k => k.CrMoV && Math.abs(parseFloat(k.CrMoV) - crmov) <= 1.0);
         if (closeCr.length > 0) {
             const avgs = getAverages(closeCr);
             if (avgs) {
@@ -1083,11 +1098,12 @@ function renderDatabase(filter = "") {
     const tbody = document.getElementById('knives-table-body');
     tbody.innerHTML = '';
 
-    if (typeof window.allKnives === 'undefined') return;
+    const knives = getKnivesArray();
+    if (knives.length === 0) return;
 
     filter = filter.toLowerCase();
 
-    const filtered = window.allKnives.filter(k => {
+    const filtered = knives.filter(k => {
         if (!filter) return true;
         const brand = (k.brand || "").toLowerCase();
         const steel = (k.steel || "").toLowerCase();
