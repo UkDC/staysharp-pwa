@@ -404,6 +404,7 @@
                     <div style="display: flex; gap: 10px;">
                         <button id="btn-db-sync" class="btn-secondary"
                             onclick="syncDatabaseFromCloud()">Синхронизировать 🔄</button>
+                        <button id="btn-reset-db-cache" class="btn-secondary">Сбросить кэш БД</button>
                     </div>
                 </header>
 
@@ -532,7 +533,7 @@
 
     <!-- Scripts -->
     <script src="js/knives.js?v=124"></script>
-    <script src="js/app.js?v=126"></script>
+    <script src="js/app.js?v=127"></script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then(reg => {

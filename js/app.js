@@ -1,5 +1,7 @@
 // ====== STATE ======
 let currentMode = 'grinding';
+const DB_STORAGE_KEY = 'staysharp_database';
+const DB_CACHE_SCHEMA_VERSION = 1;
 
 // Storage wrapper: keeps app working when localStorage is restricted (private mode / strict policies).
 const memoryStore = {};
@@ -30,27 +32,119 @@ function safeSetItem(key, value) {
     }
 }
 
-// Load cached database if exists, otherwise uses allKnives from knives.js
-const localDb = safeGetItem('staysharp_database');
-let parsedLocalDb = null;
-if (localDb) {
+function safeRemoveItem(key) {
     try {
-        parsedLocalDb = JSON.parse(localDb);
-    } catch (e) { }
+        localStorage.removeItem(key);
+    } catch (e) {
+        delete memoryStore[key];
+    }
 }
 
-if (Array.isArray(parsedLocalDb)) {
-    window.allKnives = parsedLocalDb;
-} else if (typeof allKnives !== 'undefined' && Array.isArray(allKnives)) {
-    window.allKnives = allKnives;
+function showTransientNotice(message, type = 'info') {
+    const existing = document.getElementById('runtime-notice');
+    if (existing) existing.remove();
+
+    const notice = document.createElement('div');
+    notice.id = 'runtime-notice';
+    notice.textContent = message;
+    notice.style.position = 'fixed';
+    notice.style.right = '16px';
+    notice.style.bottom = '16px';
+    notice.style.maxWidth = '320px';
+    notice.style.padding = '10px 12px';
+    notice.style.borderRadius = '10px';
+    notice.style.fontSize = '13px';
+    notice.style.lineHeight = '1.4';
+    notice.style.zIndex = '10001';
+    notice.style.border = '1px solid rgba(255,255,255,0.18)';
+    notice.style.boxShadow = '0 10px 30px rgba(0,0,0,0.35)';
+    notice.style.background = type === 'warn' ? 'rgba(251, 191, 36, 0.17)' : 'rgba(16, 20, 30, 0.92)';
+    notice.style.color = '#e8eaf0';
+    document.body.appendChild(notice);
+
+    setTimeout(() => {
+        notice.style.opacity = '0';
+        notice.style.transition = 'opacity 0.25s ease';
+        setTimeout(() => notice.remove(), 300);
+    }, 4200);
 }
 
-if (!Array.isArray(window.allKnives)) {
-    window.allKnives = [];
+function normalizeKnifeRecord(input = {}) {
+    return {
+        brand: input.brand || "",
+        series: input.series || "",
+        steel: input.steel || "",
+        carbon: input.carbon ?? "",
+        CrMoV: input.CrMoV ?? input.crmov ?? "",
+        length: input.length ?? "",
+        width: input.width ?? "",
+        angle: input.angle ?? "",
+        honing_add: input.honing_add ?? "",
+        comments: input.comments || "",
+        category: input.category || "custom"
+    };
 }
+
+function sanitizeKnivesArray(items) {
+    if (!Array.isArray(items)) return [];
+    return items
+        .filter(item => item && typeof item === 'object' && !Array.isArray(item))
+        .map(normalizeKnifeRecord);
+}
+
+function writeDatabaseCache(knives) {
+    const payload = {
+        schemaVersion: DB_CACHE_SCHEMA_VERSION,
+        updatedAt: new Date().toISOString(),
+        data: sanitizeKnivesArray(knives)
+    };
+    safeSetItem(DB_STORAGE_KEY, JSON.stringify(payload));
+}
+
+function resolveInitialDatabase() {
+    const fallback = (typeof allKnives !== 'undefined' && Array.isArray(allKnives))
+        ? sanitizeKnivesArray(allKnives)
+        : [];
+    const raw = safeGetItem(DB_STORAGE_KEY);
+    if (!raw) {
+        if (fallback.length > 0) writeDatabaseCache(fallback);
+        return fallback;
+    }
+
+    let parsed = null;
+    try {
+        parsed = JSON.parse(raw);
+    } catch (e) {
+        safeRemoveItem(DB_STORAGE_KEY);
+        showTransientNotice('Локальный кэш базы поврежден и автоматически сброшен.', 'warn');
+        if (fallback.length > 0) writeDatabaseCache(fallback);
+        return fallback;
+    }
+
+    if (Array.isArray(parsed)) {
+        const migrated = sanitizeKnivesArray(parsed);
+        writeDatabaseCache(migrated);
+        return migrated;
+    }
+
+    if (parsed && typeof parsed === 'object' && Array.isArray(parsed.data)) {
+        const data = sanitizeKnivesArray(parsed.data);
+        if (parsed.schemaVersion !== DB_CACHE_SCHEMA_VERSION) {
+            writeDatabaseCache(data);
+        }
+        return data;
+    }
+
+    safeRemoveItem(DB_STORAGE_KEY);
+    showTransientNotice('Локальный кэш базы поврежден и автоматически сброшен.', 'warn');
+    if (fallback.length > 0) writeDatabaseCache(fallback);
+    return fallback;
+}
+
+window.allKnives = resolveInitialDatabase();
 
 function getKnivesArray() {
-    return Array.isArray(window.allKnives) ? window.allKnives : [];
+    return sanitizeKnivesArray(window.allKnives);
 }
 
 // DOM Elements
@@ -466,7 +560,7 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
                     comments: k.Comments || k.comments || "",
                     category: k.Category || k.category || "custom"
                 }));
-                safeSetItem('staysharp_database', JSON.stringify(window.allKnives));
+                writeDatabaseCache(window.allKnives);
                 renderDatabase();
                 success = true;
             } else if (Array.isArray(data) && data.length === 0) {
@@ -1039,6 +1133,37 @@ document.addEventListener('click', (event) => {
     window.saveRecordClick(event);
 }, true);
 
+function resetDatabaseCacheWithDefaults() {
+    const defaults = (typeof allKnives !== 'undefined' && Array.isArray(allKnives))
+        ? sanitizeKnivesArray(allKnives)
+        : [];
+    safeRemoveItem(DB_STORAGE_KEY);
+    window.allKnives = defaults;
+    writeDatabaseCache(window.allKnives);
+
+    const searchEl = document.getElementById('search-knives');
+    renderDatabase(searchEl ? searchEl.value : "");
+    populatePredictDatalists();
+    showTransientNotice('Локальный кэш базы сброшен и восстановлен из встроенной базы.');
+}
+
+function bindResetDbCacheButton() {
+    const resetBtn = document.getElementById('btn-reset-db-cache');
+    if (!resetBtn || resetBtn.dataset.bound === '1') return;
+
+    resetBtn.addEventListener('click', () => {
+        const ok = confirm('Сбросить локальный кэш базы ножей? История заточек не будет удалена.');
+        if (!ok) return;
+        resetDatabaseCacheWithDefaults();
+    });
+
+    resetBtn.dataset.bound = '1';
+}
+
+window.resetDatabaseCache = resetDatabaseCacheWithDefaults;
+bindResetDbCacheButton();
+window.addEventListener('pageshow', bindResetDbCacheButton);
+
 
 
 function renderHistory() {
@@ -1092,6 +1217,7 @@ renderHistory(); // load on start
 document.addEventListener('DOMContentLoaded', () => {
     syncDatabaseFromCloud(true);
     bindSaveRecordButton();
+    bindResetDbCacheButton();
 });
 
 function renderDatabase(filter = "") {
