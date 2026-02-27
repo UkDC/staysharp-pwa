@@ -391,11 +391,18 @@ body::after {
   opacity: 0.75;
 }
 
-#btn-reset-db-cache::after,
-#btn-hard-refresh::after {
-  font-size: 18px;
-  opacity: 0.75;
+.sidebar-tool-btn::after,
+.status-action-btn::after {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 22px;
+  font-size: 20px;
+  opacity: 0.8;
   line-height: 1;
+  transform-origin: center;
 }
 
 #btn-reset-db-cache::after {
@@ -406,26 +413,33 @@ body::after {
   content: '⟳';
 }
 
-.sidebar-tool-btn.is-loading::after {
+.sidebar-tool-btn.is-loading::after,
+.status-action-btn.is-loading::after {
   content: '';
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  border: 2.2px solid rgba(255, 255, 255, 0.32);
-  border-top-color: var(--accent-warm);
+  border: 2.4px solid rgba(255, 255, 255, 0.18);
+  border-top-color: #ff9b56;
+  border-right-color: #ff6f4a;
+  box-shadow: 0 0 0 1px rgba(255, 120, 64, 0.22),
+    0 0 10px rgba(255, 98, 58, 0.45),
+    inset 0 0 6px rgba(255, 171, 120, 0.35);
   opacity: 1;
-  animation: syncSpin 0.75s linear infinite;
+  animation: syncSpin 0.66s linear infinite, syncPulse 1.1s ease-in-out infinite;
 }
 
 #btn-reset-db-cache.is-success::after,
-#btn-hard-refresh.is-success::after {
+#btn-hard-refresh.is-success::after,
+.status-action-btn.is-success::after {
   content: '✓';
   color: var(--success);
   opacity: 1;
 }
 
 #btn-reset-db-cache.is-error::after,
-#btn-hard-refresh.is-error::after {
+#btn-hard-refresh.is-error::after,
+.status-action-btn.is-error::after {
   content: '!';
   color: #ff8f80;
   opacity: 1;
@@ -443,37 +457,21 @@ body::after {
 
 .status-action-btn::after {
   content: '↻';
-  font-size: 18px;
-  opacity: 0.75;
-  line-height: 1;
-}
-
-.status-action-btn.is-loading::after {
-  content: '';
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 2.2px solid rgba(255, 255, 255, 0.32);
-  border-top-color: var(--accent-warm);
-  opacity: 1;
-  animation: syncSpin 0.75s linear infinite;
-}
-
-.status-action-btn.is-success::after {
-  content: '✓';
-  color: var(--success);
-  opacity: 1;
-}
-
-.status-action-btn.is-error::after {
-  content: '!';
-  color: #ff8f80;
-  opacity: 1;
 }
 
 @keyframes syncSpin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes syncPulse {
+  0%,
+  100% {
+    filter: brightness(1) saturate(1.05);
+  }
+  50% {
+    filter: brightness(1.2) saturate(1.25);
   }
 }
 
