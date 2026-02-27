@@ -324,6 +324,26 @@ function placeRwInputForMode(mode) {
 const sidebar = document.getElementById('sidebar');
 const sidebarToggle = document.getElementById('sidebar-toggle');
 const sidebarOverlay = document.getElementById('sidebar-overlay');
+const keyboardDismissBtn = document.getElementById('keyboard-dismiss-btn');
+
+function isKeyboardEditableElement(el) {
+    if (!(el instanceof HTMLElement)) return false;
+    if (el.tagName === 'TEXTAREA') return true;
+    if (el.tagName !== 'INPUT') return false;
+
+    const type = (el.getAttribute('type') || 'text').toLowerCase();
+    return !['button', 'submit', 'reset', 'checkbox', 'radio', 'file', 'range', 'color', 'hidden'].includes(type);
+}
+
+function showKeyboardDismissButton() {
+    if (!keyboardDismissBtn) return;
+    keyboardDismissBtn.classList.remove('hidden');
+}
+
+function hideKeyboardDismissButton() {
+    if (!keyboardDismissBtn) return;
+    keyboardDismissBtn.classList.add('hidden');
+}
 
 function openSidebar() {
     sidebar.classList.remove('collapsed');
@@ -346,6 +366,39 @@ sidebarToggle.addEventListener('click', () => {
 });
 
 sidebarOverlay.addEventListener('click', closeSidebar);
+
+if (keyboardDismissBtn && keyboardDismissBtn.dataset.bound !== '1') {
+    keyboardDismissBtn.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+    });
+
+    keyboardDismissBtn.addEventListener('click', () => {
+        const activeEl = document.activeElement;
+        if (typeof hideAllPredictSuggestions === 'function') {
+            hideAllPredictSuggestions();
+        }
+        if (activeEl instanceof HTMLElement && typeof activeEl.blur === 'function') {
+            activeEl.blur();
+        }
+        hideKeyboardDismissButton();
+    });
+
+    keyboardDismissBtn.dataset.bound = '1';
+}
+
+document.addEventListener('focusin', (event) => {
+    if (isKeyboardEditableElement(event.target)) {
+        showKeyboardDismissButton();
+    }
+});
+
+document.addEventListener('focusout', () => {
+    setTimeout(() => {
+        if (!isKeyboardEditableElement(document.activeElement)) {
+            hideKeyboardDismissButton();
+        }
+    }, 80);
+});
 
 // Auto-close sidebar when mouse leaves its area (desktop)
 let sidebarLeaveTimer = null;
