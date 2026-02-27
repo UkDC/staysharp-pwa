@@ -655,6 +655,14 @@ h4 {
   display: none;
 }
 
+/* Honing: keep row 1 and row 2 field widths identical */
+#calculator-form.mode-honing .honing-row-1,
+#calculator-form.mode-honing .honing-row-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
 .input-group {
   margin-bottom: 8px;
 }

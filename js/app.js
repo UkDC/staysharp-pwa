@@ -272,6 +272,7 @@ const inputHoningAdd = document.getElementById('input-honing-add');
 const inputFvbS = document.getElementById('input-fvb-s');
 const inputC3C4 = document.getElementById('input-c3-c4');
 const inputC5C6 = document.getElementById('input-c5-c6');
+const calculatorForm = document.getElementById('calculator-form');
 
 function placeRwInputForMode(mode) {
     if (!rwInputGroup || !rwSlotGrinding || !rwSlotHoning) return;
@@ -281,6 +282,9 @@ function placeRwInputForMode(mode) {
     }
     rwSlotGrinding.classList.toggle('slot-collapsed', mode === 'honing');
     rwSlotHoning.classList.toggle('slot-collapsed', mode !== 'honing');
+    if (calculatorForm) {
+        calculatorForm.classList.toggle('mode-honing', mode === 'honing');
+    }
 }
 
 // ====== SIDEBAR TOGGLE ======
