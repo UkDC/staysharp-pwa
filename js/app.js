@@ -1784,12 +1784,14 @@ function bindHardRefreshButton() {
         const ok = confirm('Перезапустить приложение и принудительно очистить web-кэш (Service Worker + Cache Storage)? История и журнал не удаляются.');
         if (!ok) return;
 
-        setSidebarToolButtonState(refreshBtn, 'loading', 'Подготовка...');
+        setSidebarToolButtonState(refreshBtn, 'loading', SIDEBAR_HARD_REFRESH_LABEL);
 
         try {
+            // Ensure loading spinner is painted before heavy cache cleanup + navigation.
+            await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 260)));
             await hardRefreshApplication();
             // In case redirect is blocked by browser policy.
-            setSidebarToolButtonState(refreshBtn, 'success', 'Перезапуск...');
+            setSidebarToolButtonState(refreshBtn, 'success', SIDEBAR_HARD_REFRESH_LABEL);
         } catch (e) {
             console.error('Hard refresh failed:', e);
             alert('Не удалось выполнить обновление приложения: ' + e.message);
