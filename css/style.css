@@ -273,8 +273,8 @@ body::after {
   align-items: center;
   gap: 12px;
   color: var(--text-secondary);
-  font-weight: 500;
-  font-size: 14px;
+  font-weight: 600;
+  font-size: 15px;
   transition: all 0.2s ease;
   user-select: none;
   white-space: nowrap;
@@ -455,6 +455,16 @@ body::after {
   margin-bottom: 6px;
   letter-spacing: -0.5px;
   line-height: 1.2;
+}
+
+#db-view .section-header {
+  margin-bottom: 12px;
+}
+
+#db-view .section-header h1 {
+  font-size: 30px;
+  line-height: 1.12;
+  margin-bottom: 0;
 }
 
 .section-header p {
@@ -1019,6 +1029,16 @@ input[type="number"] {
   margin-bottom: 20px;
 }
 
+#search-knives::placeholder {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+#search-knives::-webkit-input-placeholder {
+  font-size: 14px;
+  font-weight: 500;
+}
+
 /* Tags */
 .tag-badge {
   display: inline-block;
@@ -1419,6 +1439,16 @@ input[type="number"] {
   .section-header h1 {
     font-size: 28px;
     margin-bottom: 2px;
+  }
+
+  #db-view .section-header {
+    margin-bottom: 10px;
+  }
+
+  #db-view .section-header h1 {
+    font-size: 24px;
+    margin-bottom: 0;
+    line-height: 1.15;
   }
 
   .section-header p {
