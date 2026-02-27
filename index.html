@@ -15,7 +15,7 @@
     <link rel="icon" href="/staysharp-pwa/favicon.ico">
     <link rel="shortcut icon" href="/staysharp-pwa/favicon.ico">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="css/style.css?v=1772221136">
+    <link rel="stylesheet" href="css/style.css?v=1772221843">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -482,12 +482,12 @@
                     <div class="predict-grid predict-grid-top">
                         <div class="input-group predict-autocomplete">
                             <label for="predict-brand">Brand</label>
-                            <input type="text" id="predict-brand" placeholder="Например: Victorinox" autocomplete="off">
+                            <input type="text" id="predict-brand" placeholder="Например: Victorinox" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
                             <div id="predict-brand-suggest" class="predict-suggest hidden"></div>
                         </div>
                         <div class="input-group predict-autocomplete">
                             <label for="predict-series">Series</label>
-                            <input type="text" id="predict-series" autocomplete="off">
+                            <input type="text" id="predict-series" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
                             <div id="predict-series-suggest" class="predict-suggest hidden"></div>
                         </div>
                     </div>
@@ -495,7 +495,7 @@
                     <div class="predict-grid predict-grid-mid">
                         <div class="input-group predict-field-wide predict-autocomplete">
                             <label for="predict-steel">Steel</label>
-                            <input type="text" id="predict-steel" placeholder="Например: 440C" autocomplete="off">
+                            <input type="text" id="predict-steel" placeholder="Например: 440C" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
                             <div id="predict-steel-suggest" class="predict-suggest hidden"></div>
                         </div>
                         <div class="input-group">
@@ -569,7 +569,7 @@
 
     <!-- Scripts -->
     <script src="js/knives.js?v=124"></script>
-    <script src="js/app.js?v=1772221136"></script>
+    <script src="js/app.js?v=1772221843"></script>
     <script>
         const takeSessionFlag = (key) => {
             try {

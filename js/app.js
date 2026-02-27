@@ -1359,14 +1359,38 @@ function renderPredictSuggestions(field, forceOpen = false) {
     if (!input || !panel) return;
 
     const options = Array.isArray(predictAutocompleteState[field]) ? predictAutocompleteState[field] : [];
-    if (!options.length) {
+    const currentValue = toText(input.value).trim().toLowerCase();
+
+    const rankedOptions = options
+        .filter((value) => {
+            const lower = value.toLowerCase();
+            return !currentValue || lower.includes(currentValue);
+        })
+        .sort((a, b) => {
+            const getRank = (value) => {
+                const lower = value.toLowerCase();
+                if (currentValue && lower === currentValue) return 0;
+                if (currentValue && lower.startsWith(currentValue)) return 1;
+                if (currentValue && lower.includes(currentValue)) return 2;
+                if (lower === PREDICT_UNKNOWN_LABEL) return 4;
+                return 3;
+            };
+
+            const rankDiff = getRank(a) - getRank(b);
+            if (rankDiff !== 0) return rankDiff;
+            return a.localeCompare(b, 'en', { sensitivity: 'base' });
+        })
+        .slice(0, 4);
+
+    if (!rankedOptions.length) {
         panel.classList.add('hidden');
         panel.innerHTML = '';
         return;
     }
 
-    const currentValue = toText(input.value).trim().toLowerCase();
-    panel.innerHTML = options.map((value) => {
+    const hasExactMatch = !!currentValue && options.some((value) => value.toLowerCase() === currentValue);
+
+    panel.innerHTML = rankedOptions.map((value) => {
         const safeValue = escapePredictHtml(value);
         const safeLabel = escapePredictHtml(value);
         const lower = value.toLowerCase();
@@ -1375,7 +1399,9 @@ function renderPredictSuggestions(field, forceOpen = false) {
         return `<button type="button" class="predict-suggest-item${activeClass}${unknownClass}" data-field="${field}" data-value="${safeValue}">${safeLabel}</button>`;
     }).join('');
 
-    if (forceOpen || document.activeElement === input) {
+    const shouldShow = (forceOpen || document.activeElement === input) && (!hasExactMatch || !currentValue);
+
+    if (shouldShow) {
         panel.classList.remove('hidden');
         hideAllPredictSuggestions(field);
     } else {
