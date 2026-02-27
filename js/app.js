@@ -618,6 +618,8 @@ calculateLive();
 // ====== CLOUD SYNC ======
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzaKD0e3RrcBfnb7fFpDEEbvgd_CIDzABkymBQzCgSZn6Z66ZLw-R9sXz0m9YrIbFPw/exec';
 const API_TOKEN = 'StaySharp_Secure_Token_2026'; // Секретный токен для базовой защиты
+const CLOUD_GET_TIMEOUT_MS = 5500;
+const CLOUD_POST_TIMEOUT_MS = 6500;
 const CLOUD_OUTBOX_KEY = 'staysharp_cloud_outbox';
 const CLOUD_HISTORY_META_KEY = 'staysharp_cloud_history_meta';
 const HISTORY_DELETED_IDS_KEY = 'staysharp_deleted_ids';
@@ -798,6 +800,31 @@ function enqueueCloudOperation(record, sheetName = "History", action = "add") {
     setCloudOutbox(compactCloudOutbox(outbox));
 }
 
+async function fetchWithTimeout(input, init = {}, timeoutMs = CLOUD_GET_TIMEOUT_MS) {
+    if (typeof AbortController !== 'function' || !(timeoutMs > 0)) {
+        return fetch(input, init);
+    }
+
+    const controller = new AbortController();
+    let didTimeout = false;
+    const timeoutId = setTimeout(() => {
+        didTimeout = true;
+        controller.abort();
+    }, timeoutMs);
+
+    try {
+        const mergedInit = { ...init, signal: controller.signal };
+        return await fetch(input, mergedInit);
+    } catch (e) {
+        if (didTimeout) {
+            throw new Error(`Cloud timeout after ${Math.round(timeoutMs / 1000)}s`);
+        }
+        throw e;
+    } finally {
+        clearTimeout(timeoutId);
+    }
+}
+
 async function pushToCloud(record, sheetName = "History", action = "add") {
     const normalizedRecord = action === 'delete'
         ? { id: toText(record?.id).trim() }
@@ -813,12 +840,12 @@ async function pushToCloud(record, sheetName = "History", action = "add") {
         record: normalizedRecord
     };
 
-    const response = await fetch(GOOGLE_SCRIPT_URL, {
+    const response = await fetchWithTimeout(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
         body: JSON.stringify(payload),
         cache: 'no-store'
-    });
+    }, CLOUD_POST_TIMEOUT_MS);
 
     const responseText = (await response.text()).trim();
     if (!response.ok) throw new Error(`Cloud HTTP ${response.status}`);
@@ -845,7 +872,7 @@ async function fetchCloudHistoryRecords() {
         url.searchParams.set('updatedAfter', cloudMeta.updatedAt);
     }
 
-    const res = await fetch(url.toString(), { cache: 'no-store' });
+    const res = await fetchWithTimeout(url.toString(), { cache: 'no-store' }, CLOUD_GET_TIMEOUT_MS);
     if (!res.ok) throw new Error(`Cloud History HTTP ${res.status}`);
     const data = await res.json();
 
@@ -1295,7 +1322,7 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
 
     let success = false;
     try {
-        const res = await fetch(`${GOOGLE_SCRIPT_URL}?token=${API_TOKEN}&sheet=Database&_t=${Date.now()}`, { cache: 'no-store' });
+        const res = await fetchWithTimeout(`${GOOGLE_SCRIPT_URL}?token=${API_TOKEN}&sheet=Database&_t=${Date.now()}`, { cache: 'no-store' }, CLOUD_GET_TIMEOUT_MS);
         if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data) && !data.error && data.length > 0) {
