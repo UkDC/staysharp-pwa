@@ -2264,7 +2264,7 @@ function bindHistoryPullToRefresh() {
             return;
         }
 
-        const distance = Math.min(HISTORY_PULL_MAX, deltaY * 0.5);
+        const distance = Math.min(HISTORY_PULL_MAX, deltaY * 0.38);
         historyPullState.distance = distance;
         historyPullState.ready = distance >= HISTORY_PULL_THRESHOLD;
         setHistoryPullIndicatorState(historyPullState.ready ? 'ready' : 'pull', distance);
@@ -2333,7 +2333,7 @@ function bindDbPullToRefresh() {
             return;
         }
 
-        const distance = Math.min(HISTORY_PULL_MAX, deltaY * 0.5);
+        const distance = Math.min(HISTORY_PULL_MAX, deltaY * 0.38);
         dbPullState.distance = distance;
         dbPullState.ready = distance >= HISTORY_PULL_THRESHOLD;
         setDbPullIndicatorState(dbPullState.ready ? 'ready' : 'pull', distance);
