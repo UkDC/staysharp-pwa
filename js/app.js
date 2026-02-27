@@ -1000,8 +1000,8 @@ function applyCloudDeletionDiff(localRecords, prevCloudIds, currentCloudIds, pen
     return { records, deletedIds };
 }
 
-const HISTORY_PULL_THRESHOLD = 96;
-const HISTORY_PULL_MAX = 140;
+const HISTORY_PULL_THRESHOLD = 72;
+const HISTORY_PULL_MAX = 180;
 const historyPullState = {
     dragging: false,
     ready: false,
@@ -2264,10 +2264,11 @@ function bindHistoryPullToRefresh() {
             return;
         }
 
-        const distance = Math.min(HISTORY_PULL_MAX, deltaY * 0.5);
-        historyPullState.distance = distance;
-        historyPullState.ready = distance >= HISTORY_PULL_THRESHOLD;
-        setHistoryPullIndicatorState(historyPullState.ready ? 'ready' : 'pull', distance);
+        const triggerDistance = deltaY * 0.5;
+        const visualDistance = Math.min(HISTORY_PULL_MAX, 42 + triggerDistance);
+        historyPullState.distance = triggerDistance;
+        historyPullState.ready = triggerDistance >= HISTORY_PULL_THRESHOLD;
+        setHistoryPullIndicatorState(historyPullState.ready ? 'ready' : 'pull', visualDistance);
 
         if (contentArea.scrollTop <= 0) {
             event.preventDefault();
@@ -2333,10 +2334,11 @@ function bindDbPullToRefresh() {
             return;
         }
 
-        const distance = Math.min(HISTORY_PULL_MAX, deltaY * 0.5);
-        dbPullState.distance = distance;
-        dbPullState.ready = distance >= HISTORY_PULL_THRESHOLD;
-        setDbPullIndicatorState(dbPullState.ready ? 'ready' : 'pull', distance);
+        const triggerDistance = deltaY * 0.5;
+        const visualDistance = Math.min(HISTORY_PULL_MAX, 42 + triggerDistance);
+        dbPullState.distance = triggerDistance;
+        dbPullState.ready = triggerDistance >= HISTORY_PULL_THRESHOLD;
+        setDbPullIndicatorState(dbPullState.ready ? 'ready' : 'pull', visualDistance);
 
         if (contentArea.scrollTop <= 0) {
             event.preventDefault();
