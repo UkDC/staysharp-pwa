@@ -169,7 +169,8 @@ body::after {
 }
 
 .sidebar.collapsed .logo,
-.sidebar.collapsed .nav-links {
+.sidebar.collapsed .nav-links,
+.sidebar.collapsed .sidebar-tools {
   opacity: 0;
   pointer-events: none;
 }
@@ -354,6 +355,17 @@ body::after {
 .nav-links li .drag-handle:hover {
   opacity: 1;
   color: var(--text-secondary);
+}
+
+.sidebar-tools {
+  padding: 10px 14px 14px;
+  border-top: 1px solid var(--border-color);
+}
+
+.sidebar-tool-btn {
+  width: 100%;
+  font-size: 13px;
+  padding: 10px 12px;
 }
 
 /* === MAIN CONTENT === */
@@ -1384,7 +1396,8 @@ input[type="number"] {
   }
 
   .sidebar.collapsed .logo,
-  .sidebar.collapsed .nav-links {
+  .sidebar.collapsed .nav-links,
+  .sidebar.collapsed .sidebar-tools {
     opacity: 1;
     pointer-events: auto;
   }
