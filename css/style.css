@@ -274,7 +274,7 @@ body::after {
   gap: 12px;
   color: var(--text-secondary);
   font-weight: 600;
-  font-size: 15px;
+  font-size: 17px;
   transition: all 0.2s ease;
   user-select: none;
   white-space: nowrap;
