@@ -1297,6 +1297,32 @@ function clearForm() {
     document.getElementById('record-comments').value = '';
 }
 
+const PREDICT_UNKNOWN_LABEL = 'неизвестно';
+
+function normalizePredictLookupValue(value) {
+    const trimmed = toText(value).trim();
+    if (!trimmed) return '';
+
+    const normalized = trimmed.toLowerCase();
+    if (
+        normalized === PREDICT_UNKNOWN_LABEL ||
+        normalized === 'unknown' ||
+        normalized === 'brand unknown' ||
+        normalized === 'series unknown' ||
+        normalized === 'steel unknown'
+    ) {
+        return '';
+    }
+
+    return trimmed;
+}
+
+function buildPredictDatalistOptions(values) {
+    const unique = Array.from(new Set(values.map(v => toText(v).trim()).filter(Boolean)));
+    const filtered = unique.filter(v => v.toLowerCase() !== PREDICT_UNKNOWN_LABEL);
+    return [PREDICT_UNKNOWN_LABEL, ...filtered.sort((a, b) => a.localeCompare(b))];
+}
+
 function populatePredictDatalists() {
     const knives = getKnivesArray();
     const bList = document.getElementById('brand-list');
@@ -1314,9 +1340,9 @@ function populatePredictDatalists() {
     const seriesEl = document.getElementById('predict-series');
     const steelEl = document.getElementById('predict-steel');
 
-    const currBrand = toText(brandEl ? brandEl.value : '').trim().toLowerCase();
-    const currSeries = toText(seriesEl ? seriesEl.value : '').trim().toLowerCase();
-    const currSteel = toText(steelEl ? steelEl.value : '').trim().toLowerCase();
+    const currBrand = normalizePredictLookupValue(brandEl ? brandEl.value : '').toLowerCase();
+    const currSeries = normalizePredictLookupValue(seriesEl ? seriesEl.value : '').toLowerCase();
+    const currSteel = normalizePredictLookupValue(steelEl ? steelEl.value : '').toLowerCase();
 
     const brands = new Set();
     const series = new Set();
@@ -1338,9 +1364,9 @@ function populatePredictDatalists() {
         if (matchB && matchS && k.steel) steels.add(k.steel.trim());
     });
 
-    if (bList) bList.innerHTML = Array.from(brands).sort().map(b => `<option value="${b}">`).join('');
-    if (sList) sList.innerHTML = Array.from(series).sort().map(s => `<option value="${s}">`).join('');
-    if (stList) stList.innerHTML = Array.from(steels).sort().map(st => `<option value="${st}">`).join('');
+    if (bList) bList.innerHTML = buildPredictDatalistOptions(Array.from(brands)).map(b => `<option value="${b}">`).join('');
+    if (sList) sList.innerHTML = buildPredictDatalistOptions(Array.from(series)).map(s => `<option value="${s}">`).join('');
+    if (stList) stList.innerHTML = buildPredictDatalistOptions(Array.from(steels)).map(st => `<option value="${st}">`).join('');
 }
 populatePredictDatalists();
 
@@ -1408,9 +1434,9 @@ function triggerPrediction(e) {
     const crInput = els.crmovEl;
     const catInput = els.categoryEl;
 
-    let bVal = bInput.value.trim();
-    let sVal = sInput.value.trim();
-    let stVal = stInput.value.trim();
+    let bVal = normalizePredictLookupValue(bInput.value);
+    let sVal = normalizePredictLookupValue(sInput.value);
+    let stVal = normalizePredictLookupValue(stInput.value);
     let cVal = cInput.value.trim();
     let crVal = crInput.value.trim();
     const catVal = catInput ? catInput.value.trim() : '';
@@ -1455,9 +1481,11 @@ function triggerPrediction(e) {
             if (anchorMatches.length > 0) {
                 const isValid = (field, val) => {
                     if (!val) return true;
-                    if (field === 'brand') return anchorMatches.some(k => toText(k.brand).toLowerCase() === val.toLowerCase());
-                    if (field === 'series') return anchorMatches.some(k => toText(k.series).toLowerCase() === val.toLowerCase());
-                    if (field === 'steel') return anchorMatches.some(k => toText(k.steel).toLowerCase() === val.toLowerCase());
+                    const normalizedVal = normalizePredictLookupValue(val);
+                    if (!normalizedVal) return true;
+                    if (field === 'brand') return anchorMatches.some(k => toText(k.brand).toLowerCase() === normalizedVal.toLowerCase());
+                    if (field === 'series') return anchorMatches.some(k => toText(k.series).toLowerCase() === normalizedVal.toLowerCase());
+                    if (field === 'steel') return anchorMatches.some(k => toText(k.steel).toLowerCase() === normalizedVal.toLowerCase());
                     if (field === 'carbon') return anchorMatches.some(k => parseFloat(k.carbon) === parseFloat(val));
                     if (field === 'crmov') return anchorMatches.some(k => parseFloat(k.CrMoV) === parseFloat(val));
                     return false;
@@ -1481,17 +1509,26 @@ function triggerPrediction(e) {
         const uniqueSt = [...new Set(matches.map(k => k.steel))].filter(Boolean);
         const uniqueC = [...new Set(matches.map(k => (k.carbon !== null && k.carbon !== undefined && k.carbon !== "") ? k.carbon.toString() : null))].filter(Boolean);
         const uniqueCr = [...new Set(matches.map(k => (k.CrMoV !== null && k.CrMoV !== undefined && k.CrMoV !== "") ? k.CrMoV.toString() : null))].filter(Boolean);
+        const hasUnknownBrand = matches.some(k => !toText(k.brand).trim());
+        const hasUnknownSeries = matches.some(k => !toText(k.series).trim());
+        const hasUnknownSteel = matches.some(k => !toText(k.steel).trim());
 
         if (uniqueB.length === 1 && e.target !== bInput) bInput.value = uniqueB[0];
+        else if (!bVal && uniqueB.length === 0 && hasUnknownBrand && e.target !== bInput) bInput.value = PREDICT_UNKNOWN_LABEL;
+
         if (uniqueS.length === 1 && e.target !== sInput) sInput.value = uniqueS[0];
+        else if (!sVal && uniqueS.length === 0 && hasUnknownSeries && e.target !== sInput) sInput.value = PREDICT_UNKNOWN_LABEL;
+
         if (uniqueSt.length === 1 && e.target !== stInput) stInput.value = uniqueSt[0];
+        else if (!stVal && uniqueSt.length === 0 && hasUnknownSteel && e.target !== stInput) stInput.value = PREDICT_UNKNOWN_LABEL;
+
         if (uniqueC.length === 1 && e.target !== cInput) cInput.value = uniqueC[0];
         if (uniqueCr.length === 1 && e.target !== crInput) crInput.value = uniqueCr[0];
     }
 
-    const brand = toText(bInput.value).trim().toLowerCase();
-    const series = toText(sInput.value).trim().toLowerCase();
-    const steel = toText(stInput.value).trim().toLowerCase();
+    const brand = normalizePredictLookupValue(bInput.value).toLowerCase();
+    const series = normalizePredictLookupValue(sInput.value).toLowerCase();
+    const steel = normalizePredictLookupValue(stInput.value).toLowerCase();
     const category = catVal.toLowerCase();
     const carbonRaw = cInput.value.trim();
     const crmovRaw = crInput.value.trim();
@@ -1638,9 +1675,9 @@ predictApplyBtn.addEventListener('click', () => {
     if (!Number.isFinite(pAngle) || !Number.isFinite(pHoning)) return;
 
     // Fill form
-    document.getElementById('record-brand').value = document.getElementById('predict-brand').value;
-    document.getElementById('record-series').value = document.getElementById('predict-series').value;
-    document.getElementById('record-steel').value = document.getElementById('predict-steel').value;
+    document.getElementById('record-brand').value = normalizePredictLookupValue(document.getElementById('predict-brand').value);
+    document.getElementById('record-series').value = normalizePredictLookupValue(document.getElementById('predict-series').value);
+    document.getElementById('record-steel').value = normalizePredictLookupValue(document.getElementById('predict-steel').value);
     document.getElementById('record-carbon').value = document.getElementById('predict-carbon').value;
     document.getElementById('record-crmov').value = document.getElementById('predict-crmov').value;
     document.getElementById('record-angle').value = pAngle.toFixed(1);
