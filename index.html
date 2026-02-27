@@ -15,7 +15,7 @@
     <link rel="icon" href="/staysharp-pwa/favicon.ico">
     <link rel="shortcut icon" href="/staysharp-pwa/favicon.ico">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="css/style.css?v=1772216389">
+    <link rel="stylesheet" href="css/style.css?v=1772216544">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -544,7 +544,7 @@
 
     <!-- Scripts -->
     <script src="js/knives.js?v=124"></script>
-    <script src="js/app.js?v=1772216389"></script>
+    <script src="js/app.js?v=1772216544"></script>
     <script>
         const takeSessionFlag = (key) => {
             try {
@@ -575,8 +575,14 @@
             openSidebar();
         }
 
-        if (takeSessionFlag('staysharp_show_pwa_updated_notice') && typeof showTransientNotice === 'function') {
-            showTransientNotice('Приложение обновлено.', 'success');
+        if (takeSessionFlag('staysharp_show_pwa_updated_notice')) {
+            const refreshBtn = document.getElementById('btn-hard-refresh');
+            if (refreshBtn && typeof setSidebarToolButtonState === 'function') {
+                setSidebarToolButtonState(refreshBtn, 'success', SIDEBAR_HARD_REFRESH_LABEL);
+                setTimeout(() => {
+                    setSidebarToolButtonState(refreshBtn, 'default', SIDEBAR_HARD_REFRESH_LABEL);
+                }, 1800);
+            }
         }
 
         if ('serviceWorker' in navigator) {
