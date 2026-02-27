@@ -411,7 +411,7 @@ body::after {
   content: '⟳';
 }
 
-#btn-db-sync.is-loading::after {
+.sidebar-tool-btn.is-loading::after {
   content: '';
   width: 18px;
   height: 18px;
@@ -422,13 +422,17 @@ body::after {
   animation: syncSpin 0.75s linear infinite;
 }
 
-#btn-db-sync.is-success::after {
+#btn-db-sync.is-success::after,
+#btn-reset-db-cache.is-success::after,
+#btn-hard-refresh.is-success::after {
   content: '✓';
   color: var(--success);
   opacity: 1;
 }
 
-#btn-db-sync.is-error::after {
+#btn-db-sync.is-error::after,
+#btn-reset-db-cache.is-error::after,
+#btn-hard-refresh.is-error::after {
   content: '!';
   color: #ff8f80;
   opacity: 1;

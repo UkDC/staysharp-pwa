@@ -1053,14 +1053,37 @@ async function syncHistoryFromCloud(showUI = true) {
     }
 }
 
+const SIDEBAR_SYNC_LABEL = 'Синхронизировать';
+const SIDEBAR_RESET_LABEL = 'Обновить справочник';
+const SIDEBAR_HARD_REFRESH_LABEL = 'Обновить приложение';
+
+function setSidebarToolButtonState(button, state, label) {
+    if (!button) return;
+    button.classList.remove('is-loading', 'is-success', 'is-error');
+
+    if (state === 'loading') {
+        button.classList.add('is-loading');
+        button.disabled = true;
+    } else if (state === 'success') {
+        button.classList.add('is-success');
+        button.disabled = true;
+    } else if (state === 'error') {
+        button.classList.add('is-error');
+        button.disabled = true;
+    } else {
+        button.disabled = false;
+    }
+
+    if (typeof label === 'string') {
+        button.textContent = label;
+    }
+}
+
 async function syncDatabaseFromCloud(isAutoSync = false) {
     const syncDbBtn = document.getElementById('btn-db-sync');
 
     if (syncDbBtn && !isAutoSync) {
-        syncDbBtn.classList.remove('is-success', 'is-error');
-        syncDbBtn.classList.add('is-loading');
-        syncDbBtn.textContent = 'Синхронизация...';
-        syncDbBtn.disabled = true;
+        setSidebarToolButtonState(syncDbBtn, 'loading', 'Синхронизация...');
     }
 
     let success = false;
@@ -1104,13 +1127,9 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
     }
 
     if (syncDbBtn && !isAutoSync) {
-        syncDbBtn.classList.remove('is-loading');
-        syncDbBtn.classList.add(success ? 'is-success' : 'is-error');
-        syncDbBtn.textContent = success ? 'Синхронизировано' : 'Ошибка синхронизации';
+        setSidebarToolButtonState(syncDbBtn, success ? 'success' : 'error', success ? 'Синхронизировано' : 'Ошибка синхронизации');
         setTimeout(() => {
-            syncDbBtn.classList.remove('is-success', 'is-error');
-            syncDbBtn.textContent = 'Синхронизировать';
-            syncDbBtn.disabled = false;
+            setSidebarToolButtonState(syncDbBtn, 'default', SIDEBAR_SYNC_LABEL);
         }, 2000);
     }
 }
@@ -1736,10 +1755,26 @@ function bindResetDbCacheButton() {
     const resetBtn = document.getElementById('btn-reset-db-cache');
     if (!resetBtn || resetBtn.dataset.bound === '1') return;
 
-    resetBtn.addEventListener('click', () => {
+    resetBtn.addEventListener('click', async () => {
         const ok = confirm('Обновить локальный справочник из встроенной базы? История заточек не будет удалена.');
         if (!ok) return;
-        resetDatabaseCacheWithDefaults();
+
+        setSidebarToolButtonState(resetBtn, 'loading', 'Обновление...');
+        try {
+            // Small delay so the loading indicator is visible on fast devices.
+            await new Promise(resolve => setTimeout(resolve, 180));
+            resetDatabaseCacheWithDefaults();
+            setSidebarToolButtonState(resetBtn, 'success', 'Справочник обновлен');
+            setTimeout(() => {
+                setSidebarToolButtonState(resetBtn, 'default', SIDEBAR_RESET_LABEL);
+            }, 1700);
+        } catch (e) {
+            console.error('Reset DB cache failed:', e);
+            setSidebarToolButtonState(resetBtn, 'error', 'Ошибка обновления');
+            setTimeout(() => {
+                setSidebarToolButtonState(resetBtn, 'default', SIDEBAR_RESET_LABEL);
+            }, 2200);
+        }
     });
 
     resetBtn.dataset.bound = '1';
@@ -1753,19 +1788,19 @@ function bindHardRefreshButton() {
         const ok = confirm('Перезапустить приложение и принудительно очистить web-кэш (Service Worker + Cache Storage)? История и журнал не удаляются.');
         if (!ok) return;
 
-        const originalText = refreshBtn.textContent;
-        refreshBtn.textContent = 'Обновление...';
-        refreshBtn.disabled = true;
-        refreshBtn.style.opacity = '0.7';
+        setSidebarToolButtonState(refreshBtn, 'loading', 'Подготовка...');
 
         try {
             await hardRefreshApplication();
+            // In case redirect is blocked by browser policy.
+            setSidebarToolButtonState(refreshBtn, 'success', 'Перезапуск...');
         } catch (e) {
             console.error('Hard refresh failed:', e);
             alert('Не удалось выполнить обновление приложения: ' + e.message);
-            refreshBtn.textContent = originalText;
-            refreshBtn.disabled = false;
-            refreshBtn.style.opacity = '1';
+            setSidebarToolButtonState(refreshBtn, 'error', 'Ошибка обновления');
+            setTimeout(() => {
+                setSidebarToolButtonState(refreshBtn, 'default', SIDEBAR_HARD_REFRESH_LABEL);
+            }, 2200);
         }
     });
 
