@@ -998,6 +998,7 @@ function bindSaveRecordButton() {
     const onSaveTap = (event) => window.saveRecordClick(event);
     saveBtn.addEventListener('click', onSaveTap);
     saveBtn.addEventListener('touchend', onSaveTap, { passive: false });
+    saveBtn.addEventListener('pointerup', onSaveTap);
     saveBtn.dataset.saveBound = '1';
     console.log("Handler attached to #btn-save-record");
 }
@@ -1005,6 +1006,23 @@ function bindSaveRecordButton() {
 // Bind immediately (script is loaded at the end of body) and also on page restore.
 bindSaveRecordButton();
 window.addEventListener('pageshow', bindSaveRecordButton);
+
+// Global capture fallback: catches edge cases where a top overlay or browser quirk swallows normal listeners.
+document.addEventListener('click', (event) => {
+    const saveBtn = document.getElementById('btn-save-record');
+    if (!saveBtn) return;
+
+    const target = event.target;
+    if (target === saveBtn || (target && saveBtn.contains(target))) return;
+
+    const rect = saveBtn.getBoundingClientRect();
+    const x = event.clientX;
+    const y = event.clientY;
+    const insideButton = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+    if (!insideButton) return;
+
+    window.saveRecordClick(event);
+}, true);
 
 
 
