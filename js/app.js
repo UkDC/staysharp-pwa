@@ -1000,7 +1000,7 @@ function applyCloudDeletionDiff(localRecords, prevCloudIds, currentCloudIds, pen
     return { records, deletedIds };
 }
 
-const HISTORY_PULL_THRESHOLD = 72;
+const HISTORY_PULL_THRESHOLD = 60;
 const HISTORY_PULL_MAX = 180;
 const historyPullState = {
     dragging: false,
@@ -1222,7 +1222,7 @@ async function syncHistoryFromCloud(showUI = true) {
             setTimeout(() => {
                 historyPullState.isSyncing = false;
                 setHistoryPullIndicatorState('hidden');
-            }, 1400);
+            }, 1000);
         } else {
             historyPullState.isSyncing = false;
             setHistoryPullIndicatorState('hidden');
@@ -1318,7 +1318,7 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
             setTimeout(() => {
                 dbPullState.isSyncing = false;
                 setDbPullIndicatorState('hidden');
-            }, 1400);
+            }, 1000);
         } else {
             dbPullState.isSyncing = false;
             setDbPullIndicatorState('hidden');
