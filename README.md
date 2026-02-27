@@ -52,6 +52,7 @@ PWA-калькулятор углов заточки и хонингования
 
 - [Code.gs](backend/google-apps-script/Code.gs)
 - [backend/google-apps-script/README.md](backend/google-apps-script/README.md)
+- [Рабочая Google Sheet](https://docs.google.com/spreadsheets/d/1jh-aitRUzKT4eAqRz4pB_cvPWenxLhInXtyQrJLxjFU/edit?usp=sharing)
 
 Обязательно:
 - В `Script Properties` задать `API_TOKEN`.
