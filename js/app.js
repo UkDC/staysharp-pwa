@@ -971,9 +971,7 @@ function applyCloudDeletionDiff(localRecords, prevCloudIds, currentCloudIds, pen
 async function syncHistoryFromCloud(showUI = true) {
     const syncBtn = document.getElementById('btn-sync');
     if (showUI && syncBtn) {
-        syncBtn.textContent = '⏳ Синхронизация...';
-        syncBtn.disabled = true;
-        syncBtn.style.opacity = '0.7';
+        setSidebarToolButtonState(syncBtn, 'loading', SYNC_ACTION_LABEL);
     }
 
     let success = false;
@@ -1044,18 +1042,16 @@ async function syncHistoryFromCloud(showUI = true) {
     }
 
     if (showUI && syncBtn) {
-        syncBtn.textContent = success ? '✅ Синхронизировано' : '❌ Ошибка';
-        syncBtn.style.opacity = '1';
+        setSidebarToolButtonState(syncBtn, success ? 'success' : 'error', SYNC_ACTION_LABEL);
         setTimeout(() => {
-            syncBtn.textContent = 'Синхронизировать 🔄';
-            syncBtn.disabled = false;
+            setSidebarToolButtonState(syncBtn, 'default', SYNC_ACTION_LABEL);
         }, 2000);
     }
 }
 
-const SIDEBAR_SYNC_LABEL = 'Загрузить из облака';
-const SIDEBAR_RESET_LABEL = 'Восстановить встроенный';
-const SIDEBAR_HARD_REFRESH_LABEL = 'Обновить PWA';
+const SYNC_ACTION_LABEL = 'dbSync';
+const SIDEBAR_RESET_LABEL = 'clearCache';
+const SIDEBAR_HARD_REFRESH_LABEL = 'update PWA';
 
 function setSidebarToolButtonState(button, state, label) {
     if (!button) return;
@@ -1083,7 +1079,7 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
     const syncDbBtn = document.getElementById('btn-db-sync');
 
     if (syncDbBtn && !isAutoSync) {
-        setSidebarToolButtonState(syncDbBtn, 'loading', 'Загрузка...');
+        setSidebarToolButtonState(syncDbBtn, 'loading', SYNC_ACTION_LABEL);
     }
 
     let success = false;
@@ -1127,9 +1123,9 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
     }
 
     if (syncDbBtn && !isAutoSync) {
-        setSidebarToolButtonState(syncDbBtn, success ? 'success' : 'error', success ? 'Загружено' : 'Ошибка загрузки');
+        setSidebarToolButtonState(syncDbBtn, success ? 'success' : 'error', SYNC_ACTION_LABEL);
         setTimeout(() => {
-            setSidebarToolButtonState(syncDbBtn, 'default', SIDEBAR_SYNC_LABEL);
+            setSidebarToolButtonState(syncDbBtn, 'default', SYNC_ACTION_LABEL);
         }, 2000);
     }
 }

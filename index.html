@@ -15,7 +15,7 @@
     <link rel="icon" href="/staysharp-pwa/favicon.ico">
     <link rel="shortcut icon" href="/staysharp-pwa/favicon.ico">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="css/style.css?v=1772211378">
+    <link rel="stylesheet" href="css/style.css?v=1772212542">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -148,15 +148,11 @@
             </li>
         </ul>
         <div class="sidebar-tools">
-            <button id="btn-db-sync" class="btn-secondary sidebar-tool-btn" type="button"
-                onclick="syncDatabaseFromCloud()">
-                Загрузить из облака
-            </button>
             <button id="btn-reset-db-cache" class="btn-secondary sidebar-tool-btn" type="button">
-                Восстановить встроенный
+                clearCache
             </button>
             <button id="btn-hard-refresh" class="btn-secondary sidebar-tool-btn" type="button">
-                Обновить PWA
+                update PWA
             </button>
         </div>
     </nav>
@@ -369,10 +365,9 @@
                     <div>
                         <h1>Журнал Заточек</h1>
                     </div>
-                    <div style="display: flex; gap: 10px;">
-                        <button id="btn-sync" class="btn-secondary"
-                            onclick="try { syncHistoryFromCloud(true); } catch(e) { alert('Для применения обновления закройте (смахните) приложение из недавних и откройте заново!'); location.reload(true); }">Синхронизировать
-                            🔄</button>
+                    <div class="section-header-actions">
+                        <button id="btn-sync" class="btn-secondary status-action-btn"
+                            onclick="try { syncHistoryFromCloud(true); } catch(e) { alert('Для применения обновления закройте (смахните) приложение из недавних и откройте заново!'); location.reload(true); }">dbSync</button>
                     </div>
                 </header>
 
@@ -414,9 +409,13 @@
 
             <!-- VIEW: DATABASE -->
             <section id="db-view" class="view hidden">
-                <header class="section-header">
+                <header class="section-header flex-between">
                     <div>
                         <h1>Справочник ножей</h1>
+                    </div>
+                    <div class="section-header-actions">
+                        <button id="btn-db-sync" class="btn-secondary status-action-btn" type="button"
+                            onclick="syncDatabaseFromCloud()">dbSync</button>
                     </div>
                 </header>
 
@@ -545,7 +544,7 @@
 
     <!-- Scripts -->
     <script src="js/knives.js?v=124"></script>
-    <script src="js/app.js?v=1772211378"></script>
+    <script src="js/app.js?v=1772212542"></script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then(reg => {
