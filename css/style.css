@@ -700,6 +700,15 @@ input[type="text"]:focus {
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
+/* Keep machine/default constants visually quieter */
+#input-c1,
+#input-c2,
+#input-c3-c4,
+#input-fvb-s,
+#input-c5-c6 {
+  font-size: 16px;
+}
+
 /* Compact numeric fields */
 input.compact-num {
   max-width: 90px;
