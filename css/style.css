@@ -597,7 +597,8 @@ body::after {
   flex-wrap: wrap;
 }
 
-.history-pull-indicator {
+.history-pull-indicator,
+.db-pull-indicator {
   max-height: 0;
   opacity: 0;
   overflow: hidden;
@@ -605,11 +606,13 @@ body::after {
   transition: max-height 0.2s ease, opacity 0.2s ease;
 }
 
-.history-pull-indicator.is-visible {
+.history-pull-indicator.is-visible,
+.db-pull-indicator.is-visible {
   opacity: 1;
 }
 
-.history-pull-indicator-inner {
+.history-pull-indicator-inner,
+.db-pull-indicator-inner {
   min-height: 42px;
   display: flex;
   align-items: center;
@@ -626,18 +629,21 @@ body::after {
   -webkit-backdrop-filter: blur(10px) saturate(140%);
 }
 
-.history-pull-indicator.is-ready .history-pull-indicator-inner {
+.history-pull-indicator.is-ready .history-pull-indicator-inner,
+.db-pull-indicator.is-ready .db-pull-indicator-inner {
   border-color: rgba(227, 82, 58, 0.3);
   color: var(--accent-warm);
 }
 
-.history-pull-indicator.is-loading .history-pull-indicator-inner {
+.history-pull-indicator.is-loading .history-pull-indicator-inner,
+.db-pull-indicator.is-loading .db-pull-indicator-inner {
   color: var(--text-main);
   border-color: rgba(227, 82, 58, 0.28);
   box-shadow: inset 0 0 0 1px rgba(227, 82, 58, 0.08);
 }
 
-.history-pull-indicator.is-loading .history-pull-indicator-inner::after {
+.history-pull-indicator.is-loading .history-pull-indicator-inner::after,
+.db-pull-indicator.is-loading .db-pull-indicator-inner::after {
   content: '';
   width: 14px;
   height: 14px;
@@ -651,23 +657,29 @@ body::after {
 }
 
 .history-pull-indicator.is-success .history-pull-indicator-inner,
-.history-pull-indicator.is-error .history-pull-indicator-inner {
+.history-pull-indicator.is-error .history-pull-indicator-inner,
+.db-pull-indicator.is-success .db-pull-indicator-inner,
+.db-pull-indicator.is-error .db-pull-indicator-inner {
   color: var(--text-main);
 }
 
 .history-pull-indicator.is-success .history-pull-indicator-inner::after,
-.history-pull-indicator.is-error .history-pull-indicator-inner::after {
+.history-pull-indicator.is-error .history-pull-indicator-inner::after,
+.db-pull-indicator.is-success .db-pull-indicator-inner::after,
+.db-pull-indicator.is-error .db-pull-indicator-inner::after {
   margin-left: 10px;
   font-size: 14px;
   font-weight: 800;
 }
 
-.history-pull-indicator.is-success .history-pull-indicator-inner::after {
+.history-pull-indicator.is-success .history-pull-indicator-inner::after,
+.db-pull-indicator.is-success .db-pull-indicator-inner::after {
   content: '✓';
   color: var(--success);
 }
 
-.history-pull-indicator.is-error .history-pull-indicator-inner::after {
+.history-pull-indicator.is-error .history-pull-indicator-inner::after,
+.db-pull-indicator.is-error .db-pull-indicator-inner::after {
   content: '!';
   color: var(--accent-warm);
 }

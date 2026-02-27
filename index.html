@@ -15,7 +15,7 @@
     <link rel="icon" href="/staysharp-pwa/favicon.ico">
     <link rel="shortcut icon" href="/staysharp-pwa/favicon.ico">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="css/style.css?v=1772223436">
+    <link rel="stylesheet" href="css/style.css?v=1772223661">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -411,15 +411,17 @@
 
             <!-- VIEW: DATABASE -->
             <section id="db-view" class="view hidden">
-                <header class="section-header flex-between">
+                <header class="section-header">
                     <div>
                         <h1>Справочник ножей</h1>
                     </div>
-                    <div class="section-header-actions">
-                        <button id="btn-db-sync" class="btn-secondary status-action-btn" type="button"
-                            onclick="syncDatabaseFromCloud()">dbSync</button>
-                    </div>
                 </header>
+
+                <div id="db-pull-indicator" class="db-pull-indicator" aria-hidden="true">
+                    <div class="db-pull-indicator-inner">
+                        <span id="db-pull-indicator-label">Потяните вниз для обновления</span>
+                    </div>
+                </div>
 
                 <div class="card panel">
                     <div class="search-bar">
@@ -571,7 +573,7 @@
 
     <!-- Scripts -->
     <script src="js/knives.js?v=124"></script>
-    <script src="js/app.js?v=1772223436"></script>
+    <script src="js/app.js?v=1772223661"></script>
     <script>
         const takeSessionFlag = (key) => {
             try {

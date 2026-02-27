@@ -1009,6 +1009,13 @@ const historyPullState = {
     distance: 0,
     isSyncing: false
 };
+const dbPullState = {
+    dragging: false,
+    ready: false,
+    startY: 0,
+    distance: 0,
+    isSyncing: false
+};
 
 function getHistoryPullIndicatorRefs() {
     const wrap = document.getElementById('history-pull-indicator');
@@ -1065,6 +1072,63 @@ function setHistoryPullIndicatorState(state = 'hidden', distance = 0) {
 function isHistoryViewActive() {
     const historyView = document.getElementById('history-view');
     return !!historyView && historyView.classList.contains('active');
+}
+
+function getDbPullIndicatorRefs() {
+    const wrap = document.getElementById('db-pull-indicator');
+    const label = document.getElementById('db-pull-indicator-label');
+    return { wrap, label };
+}
+
+function setDbPullIndicatorState(state = 'hidden', distance = 0) {
+    const { wrap, label } = getDbPullIndicatorRefs();
+    if (!wrap || !label) return;
+
+    wrap.classList.remove('is-visible', 'is-ready', 'is-loading', 'is-success', 'is-error');
+
+    if (state === 'hidden') {
+        wrap.style.maxHeight = '0px';
+        return;
+    }
+
+    wrap.classList.add('is-visible');
+    wrap.style.maxHeight = `${Math.max(42, distance)}px`;
+
+    if (state === 'pull') {
+        label.textContent = 'Потяните вниз для обновления';
+        return;
+    }
+
+    if (state === 'ready') {
+        wrap.classList.add('is-ready');
+        label.textContent = 'Отпустите для синхронизации';
+        return;
+    }
+
+    if (state === 'loading') {
+        wrap.classList.add('is-loading');
+        wrap.style.maxHeight = '46px';
+        label.textContent = 'Синхронизация справочника';
+        return;
+    }
+
+    if (state === 'success') {
+        wrap.classList.add('is-success');
+        wrap.style.maxHeight = '46px';
+        label.textContent = 'Справочник обновлен';
+        return;
+    }
+
+    if (state === 'error') {
+        wrap.classList.add('is-error');
+        wrap.style.maxHeight = '46px';
+        label.textContent = 'Ошибка синхронизации';
+    }
+}
+
+function isDbViewActive() {
+    const dbView = document.getElementById('db-view');
+    return !!dbView && dbView.classList.contains('active');
 }
 
 // Fetches History from cloud and merges it with local (never blindly overwrites local state).
@@ -1198,6 +1262,10 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
     if (syncDbBtn && !isAutoSync) {
         setSidebarToolButtonState(syncDbBtn, 'loading', SYNC_ACTION_LABEL);
     }
+    if (!syncDbBtn && !isAutoSync && isDbViewActive()) {
+        dbPullState.isSyncing = true;
+        setDbPullIndicatorState('loading');
+    }
 
     let success = false;
     try {
@@ -1244,6 +1312,17 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
         setTimeout(() => {
             setSidebarToolButtonState(syncDbBtn, 'default', SYNC_ACTION_LABEL);
         }, 2000);
+    } else if (!isAutoSync && dbPullState.isSyncing) {
+        if (isDbViewActive()) {
+            setDbPullIndicatorState(success ? 'success' : 'error');
+            setTimeout(() => {
+                dbPullState.isSyncing = false;
+                setDbPullIndicatorState('hidden');
+            }, 1400);
+        } else {
+            dbPullState.isSyncing = false;
+            setDbPullIndicatorState('hidden');
+        }
     }
 }
 
@@ -2217,13 +2296,84 @@ function bindHistoryPullToRefresh() {
     contentArea.dataset.historyPullBound = '1';
 }
 
+function bindDbPullToRefresh() {
+    const contentArea = document.querySelector('.content-area');
+    if (!contentArea || contentArea.dataset.dbPullBound === '1') return;
+
+    const resetPullGesture = () => {
+        dbPullState.dragging = false;
+        dbPullState.ready = false;
+        dbPullState.startY = 0;
+        dbPullState.distance = 0;
+
+        if (!dbPullState.isSyncing) {
+            setDbPullIndicatorState('hidden');
+        }
+    };
+
+    contentArea.addEventListener('touchstart', (event) => {
+        if (dbPullState.isSyncing || !isDbViewActive() || contentArea.scrollTop > 0 || event.touches.length !== 1) {
+            resetPullGesture();
+            return;
+        }
+
+        dbPullState.dragging = true;
+        dbPullState.ready = false;
+        dbPullState.startY = event.touches[0].clientY;
+        dbPullState.distance = 0;
+        setDbPullIndicatorState('pull', 42);
+    }, { passive: true });
+
+    contentArea.addEventListener('touchmove', (event) => {
+        if (!dbPullState.dragging || dbPullState.isSyncing || !isDbViewActive()) return;
+
+        const deltaY = event.touches[0].clientY - dbPullState.startY;
+        if (deltaY <= 0) {
+            resetPullGesture();
+            return;
+        }
+
+        const distance = Math.min(HISTORY_PULL_MAX, deltaY * 0.5);
+        dbPullState.distance = distance;
+        dbPullState.ready = distance >= HISTORY_PULL_THRESHOLD;
+        setDbPullIndicatorState(dbPullState.ready ? 'ready' : 'pull', distance);
+
+        if (contentArea.scrollTop <= 0) {
+            event.preventDefault();
+        }
+    }, { passive: false });
+
+    contentArea.addEventListener('touchend', () => {
+        if (!dbPullState.dragging) return;
+
+        const shouldSync = dbPullState.ready && !dbPullState.isSyncing && isDbViewActive();
+        dbPullState.dragging = false;
+        dbPullState.ready = false;
+        dbPullState.startY = 0;
+        dbPullState.distance = 0;
+
+        if (shouldSync) {
+            void syncDatabaseFromCloud(false);
+            return;
+        }
+
+        setDbPullIndicatorState('hidden');
+    });
+
+    contentArea.addEventListener('touchcancel', resetPullGesture);
+
+    contentArea.dataset.dbPullBound = '1';
+}
+
 window.resetDatabaseCache = resetDatabaseCacheWithDefaults;
 bindResetDbCacheButton();
 bindHardRefreshButton();
 bindHistoryPullToRefresh();
+bindDbPullToRefresh();
 window.addEventListener('pageshow', bindResetDbCacheButton);
 window.addEventListener('pageshow', bindHardRefreshButton);
 window.addEventListener('pageshow', bindHistoryPullToRefresh);
+window.addEventListener('pageshow', bindDbPullToRefresh);
 
 
 
