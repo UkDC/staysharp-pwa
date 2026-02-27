@@ -1701,7 +1701,7 @@ function resetDatabaseCacheWithDefaults() {
     const searchEl = document.getElementById('search-knives');
     renderDatabase(searchEl ? searchEl.value : "");
     populatePredictDatalists();
-    showTransientNotice('Локальный кэш базы сброшен и восстановлен из встроенной базы.');
+    showTransientNotice('Справочник обновлен из встроенной базы.');
 }
 
 async function hardRefreshApplication() {
@@ -1734,7 +1734,7 @@ function bindResetDbCacheButton() {
     if (!resetBtn || resetBtn.dataset.bound === '1') return;
 
     resetBtn.addEventListener('click', () => {
-        const ok = confirm('Сбросить локальный кэш базы ножей? История заточек не будет удалена.');
+        const ok = confirm('Обновить локальный справочник из встроенной базы? История заточек не будет удалена.');
         if (!ok) return;
         resetDatabaseCacheWithDefaults();
     });
