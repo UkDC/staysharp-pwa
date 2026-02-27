@@ -15,7 +15,7 @@
     <link rel="icon" href="/staysharp-pwa/favicon.ico">
     <link rel="shortcut icon" href="/staysharp-pwa/favicon.ico">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="css/style.css?v=1772219330">
+    <link rel="stylesheet" href="css/style.css?v=1772219507">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -480,23 +480,23 @@
                     </div>
 
                     <div class="predict-grid predict-grid-top">
-                        <div class="input-group">
+                        <div class="input-group predict-autocomplete">
                             <label for="predict-brand">Brand</label>
-                            <input type="text" id="predict-brand" placeholder="Например: Victorinox" list="brand-list">
-                            <datalist id="brand-list"></datalist>
+                            <input type="text" id="predict-brand" placeholder="Например: Victorinox" autocomplete="off">
+                            <div id="predict-brand-suggest" class="predict-suggest hidden"></div>
                         </div>
-                        <div class="input-group">
+                        <div class="input-group predict-autocomplete">
                             <label for="predict-series">Series</label>
-                            <input type="text" id="predict-series" list="series-list">
-                            <datalist id="series-list"></datalist>
+                            <input type="text" id="predict-series" autocomplete="off">
+                            <div id="predict-series-suggest" class="predict-suggest hidden"></div>
                         </div>
                     </div>
 
                     <div class="predict-grid predict-grid-mid">
-                        <div class="input-group predict-field-wide">
+                        <div class="input-group predict-field-wide predict-autocomplete">
                             <label for="predict-steel">Steel</label>
-                            <input type="text" id="predict-steel" placeholder="Например: 440C" list="steel-list">
-                            <datalist id="steel-list"></datalist>
+                            <input type="text" id="predict-steel" placeholder="Например: 440C" autocomplete="off">
+                            <div id="predict-steel-suggest" class="predict-suggest hidden"></div>
                         </div>
                         <div class="input-group">
                             <label for="predict-carbon">C, %</label>
@@ -569,7 +569,7 @@
 
     <!-- Scripts -->
     <script src="js/knives.js?v=124"></script>
-    <script src="js/app.js?v=1772219330"></script>
+    <script src="js/app.js?v=1772219507"></script>
     <script>
         const takeSessionFlag = (key) => {
             try {

@@ -1298,6 +1298,11 @@ function clearForm() {
 }
 
 const PREDICT_UNKNOWN_LABEL = 'неизвестно';
+const predictAutocompleteState = {
+    brand: [],
+    series: [],
+    steel: []
+};
 
 function normalizePredictLookupValue(value) {
     const trimmed = toText(value).trim();
@@ -1323,16 +1328,102 @@ function buildPredictDatalistOptions(values) {
     return [PREDICT_UNKNOWN_LABEL, ...filtered.sort((a, b) => a.localeCompare(b))];
 }
 
+function escapePredictHtml(value) {
+    return toText(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function getPredictAutocompleteRefs(field) {
+    const input = document.getElementById(`predict-${field}`);
+    const panel = document.getElementById(`predict-${field}-suggest`);
+    return { input, panel };
+}
+
+function hidePredictSuggestions(field) {
+    const { panel } = getPredictAutocompleteRefs(field);
+    if (panel) panel.classList.add('hidden');
+}
+
+function hideAllPredictSuggestions(exceptField = '') {
+    ['brand', 'series', 'steel'].forEach((field) => {
+        if (field === exceptField) return;
+        hidePredictSuggestions(field);
+    });
+}
+
+function renderPredictSuggestions(field, forceOpen = false) {
+    const { input, panel } = getPredictAutocompleteRefs(field);
+    if (!input || !panel) return;
+
+    const options = Array.isArray(predictAutocompleteState[field]) ? predictAutocompleteState[field] : [];
+    if (!options.length) {
+        panel.classList.add('hidden');
+        panel.innerHTML = '';
+        return;
+    }
+
+    const currentValue = toText(input.value).trim().toLowerCase();
+    panel.innerHTML = options.map((value) => {
+        const safeValue = escapePredictHtml(value);
+        const safeLabel = escapePredictHtml(value);
+        const lower = value.toLowerCase();
+        const activeClass = currentValue === lower ? ' is-active' : '';
+        const unknownClass = lower === PREDICT_UNKNOWN_LABEL ? ' is-unknown' : '';
+        return `<button type="button" class="predict-suggest-item${activeClass}${unknownClass}" data-field="${field}" data-value="${safeValue}">${safeLabel}</button>`;
+    }).join('');
+
+    if (forceOpen || document.activeElement === input) {
+        panel.classList.remove('hidden');
+        hideAllPredictSuggestions(field);
+    } else {
+        panel.classList.add('hidden');
+    }
+}
+
+function bindPredictAutocompleteField(field) {
+    const { input, panel } = getPredictAutocompleteRefs(field);
+    if (!input || !panel || input.dataset.autocompleteBound === '1') return;
+
+    input.addEventListener('focus', () => {
+        populatePredictDatalists();
+        renderPredictSuggestions(field, true);
+    });
+
+    input.addEventListener('input', () => {
+        renderPredictSuggestions(field, true);
+    });
+
+    input.addEventListener('blur', () => {
+        setTimeout(() => hidePredictSuggestions(field), 140);
+    });
+
+    panel.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+    });
+
+    panel.addEventListener('click', (event) => {
+        const optionBtn = event.target.closest('.predict-suggest-item');
+        if (!optionBtn) return;
+        input.value = optionBtn.dataset.value || '';
+        hidePredictSuggestions(field);
+        input.focus();
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    input.dataset.autocompleteBound = '1';
+}
+
 function populatePredictDatalists() {
     const knives = getKnivesArray();
-    const bList = document.getElementById('brand-list');
-    const sList = document.getElementById('series-list');
-    const stList = document.getElementById('steel-list');
 
     if (knives.length === 0) {
-        if (bList) bList.innerHTML = '';
-        if (sList) sList.innerHTML = '';
-        if (stList) stList.innerHTML = '';
+        predictAutocompleteState.brand = [];
+        predictAutocompleteState.series = [];
+        predictAutocompleteState.steel = [];
+        hideAllPredictSuggestions();
         return;
     }
 
@@ -1364,11 +1455,18 @@ function populatePredictDatalists() {
         if (matchB && matchS && k.steel) steels.add(k.steel.trim());
     });
 
-    if (bList) bList.innerHTML = buildPredictDatalistOptions(Array.from(brands)).map(b => `<option value="${b}">`).join('');
-    if (sList) sList.innerHTML = buildPredictDatalistOptions(Array.from(series)).map(s => `<option value="${s}">`).join('');
-    if (stList) stList.innerHTML = buildPredictDatalistOptions(Array.from(steels)).map(st => `<option value="${st}">`).join('');
+    predictAutocompleteState.brand = buildPredictDatalistOptions(Array.from(brands));
+    predictAutocompleteState.series = buildPredictDatalistOptions(Array.from(series));
+    predictAutocompleteState.steel = buildPredictDatalistOptions(Array.from(steels));
+
+    renderPredictSuggestions('brand');
+    renderPredictSuggestions('series');
+    renderPredictSuggestions('steel');
 }
 populatePredictDatalists();
+bindPredictAutocompleteField('brand');
+bindPredictAutocompleteField('series');
+bindPredictAutocompleteField('steel');
 
 function getPredictElements() {
     return {
@@ -1407,6 +1505,7 @@ function clearPredictionInputs() {
     if (els.crmovEl) els.crmovEl.value = '';
     if (els.categoryEl) els.categoryEl.value = '';
     populatePredictDatalists();
+    hideAllPredictSuggestions();
     setPredictionState();
 }
 
