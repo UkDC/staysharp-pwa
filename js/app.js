@@ -261,6 +261,9 @@ const resultValue = document.getElementById('result-value');
 const inputKj = document.getElementById('input-kj');
 const inputGa = document.getElementById('input-ga');
 const inputRw = document.getElementById('input-rw');
+const rwInputGroup = document.getElementById('rw-input-group');
+const rwSlotGrinding = document.getElementById('rw-slot-grinding');
+const rwSlotHoning = document.getElementById('rw-slot-honing');
 // Grinding
 const inputC1 = document.getElementById('input-c1');
 const inputC2 = document.getElementById('input-c2');
@@ -269,6 +272,14 @@ const inputHoningAdd = document.getElementById('input-honing-add');
 const inputFvbS = document.getElementById('input-fvb-s');
 const inputC3C4 = document.getElementById('input-c3-c4');
 const inputC5C6 = document.getElementById('input-c5-c6');
+
+function placeRwInputForMode(mode) {
+    if (!rwInputGroup || !rwSlotGrinding || !rwSlotHoning) return;
+    const target = mode === 'honing' ? rwSlotHoning : rwSlotGrinding;
+    if (rwInputGroup.parentElement !== target) {
+        target.appendChild(rwInputGroup);
+    }
+}
 
 // ====== SIDEBAR TOGGLE ======
 const sidebar = document.getElementById('sidebar');
@@ -481,6 +492,7 @@ modeTabs.forEach(tab => {
         tab.classList.add('active');
 
         currentMode = tab.getAttribute('data-type');
+        placeRwInputForMode(currentMode);
         if (currentMode === 'grinding') {
             grindingGroup.classList.remove('hidden');
             honingGroup.classList.add('hidden');
@@ -495,6 +507,8 @@ modeTabs.forEach(tab => {
 });
 
 // ====== MATH LOGIC ======
+placeRwInputForMode(currentMode);
+
 function toRadians(angle) {
     return angle * (Math.PI / 180);
 }

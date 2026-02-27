@@ -178,22 +178,24 @@
                             </div>
 
                             <form id="calculator-form">
-                                <!-- Common Inputs -->
+                                <!-- Row 1: GA, KJ (+ RW for Grinding mode) -->
                                 <div class="input-row">
-                                    <div class="input-group">
-                                        <label for="input-kj">KJ <span class="unit">(mm)</span> <button type="button"
-                                                class="info-icon" data-key="kj" title="Что такое KJ?">?</button></label>
-                                        <input type="number" id="input-kj" step="0.1" value="130">
-                                    </div>
                                     <div class="input-group">
                                         <label for="input-ga">GA <span class="unit">(deg)</span> <button type="button"
                                                 class="info-icon" data-key="ga" title="Что такое GA?">?</button></label>
                                         <input type="number" id="input-ga" step="0.1" value="15">
                                     </div>
                                     <div class="input-group">
-                                        <label for="input-rw">RW <span class="unit">(mm)</span> <button type="button"
-                                                class="info-icon" data-key="rw" title="Что такое RW?">?</button></label>
-                                        <input type="number" id="input-rw" step="0.1" value="80">
+                                        <label for="input-kj">KJ <span class="unit">(mm)</span> <button type="button"
+                                                class="info-icon" data-key="kj" title="Что такое KJ?">?</button></label>
+                                        <input type="number" id="input-kj" step="0.1" value="130">
+                                    </div>
+                                    <div class="input-group-slot" id="rw-slot-grinding">
+                                        <div class="input-group" id="rw-input-group">
+                                            <label for="input-rw">RW <span class="unit">(mm)</span> <button type="button"
+                                                    class="info-icon" data-key="rw" title="Что такое RW?">?</button></label>
+                                            <input type="number" id="input-rw" step="0.1" value="80">
+                                        </div>
                                     </div>
                                 </div>
 
@@ -217,6 +219,7 @@
 
                                 <!-- Honing specific -->
                                 <div id="honing-group" class="hidden">
+                                    <!-- Row 2: Honing Add, RW -->
                                     <div class="input-row">
                                         <div class="input-group">
                                             <label for="input-honing-add">Honing Add <span class="unit">(deg)</span>
@@ -224,13 +227,16 @@
                                                     data-key="honing_add">?</button></label>
                                             <input type="number" id="input-honing-add" step="0.1" value="0">
                                         </div>
+                                        <div class="input-group-slot" id="rw-slot-honing"></div>
+                                    </div>
+
+                                    <!-- Row 3: FVB_S, C3_C4, C5_C6 -->
+                                    <div class="input-row">
                                         <div class="input-group">
                                             <label for="input-fvb-s">FVB_S <span class="unit">(mm)</span> <button
                                                     type="button" class="info-icon" data-key="fvb_s">?</button></label>
                                             <input type="number" id="input-fvb-s" step="0.1" value="20">
                                         </div>
-                                    </div>
-                                    <div class="input-row">
                                         <div class="input-group">
                                             <label for="input-c3-c4">C3_C4 <button type="button" class="info-icon"
                                                     data-key="c3_c4">?</button></label>
