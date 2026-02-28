@@ -603,6 +603,7 @@ const CLOUD_OUTBOX_KEY = 'staysharp_cloud_outbox';
 const CLOUD_HISTORY_META_KEY = 'staysharp_cloud_history_meta';
 const CLOUD_DATABASE_META_KEY = 'staysharp_cloud_database_meta';
 const HISTORY_DELETED_IDS_KEY = 'staysharp_deleted_ids';
+const DELETE_TRACE_KEY = 'staysharp_delete_trace';
 const HISTORY_DELETED_IDS_TTL_MS = 1000 * 60 * 60 * 24 * 45; // 45 days
 const CLOUD_PUSH_INTERVAL_MS = 7000;
 const CLOUD_PULL_INTERVAL_MS = 30000;
@@ -611,6 +612,37 @@ let cloudPushIntervalId = null;
 let cloudPullIntervalId = null;
 let historySyncPromise = null;
 let databaseSyncPromise = null;
+const DELETE_TRACE_LIMIT = 80;
+
+function getDeleteTrace() {
+    const raw = safeGetItem(DELETE_TRACE_KEY);
+    if (!raw) return [];
+    try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+    } catch (e) { }
+    safeSetItem(DELETE_TRACE_KEY, JSON.stringify([]));
+    return [];
+}
+
+function pushDeleteTrace(eventName, payload = {}) {
+    const entries = getDeleteTrace();
+    entries.push({
+        at: new Date().toISOString(),
+        event: toText(eventName),
+        payload: payload && typeof payload === 'object' ? payload : {}
+    });
+    safeSetItem(DELETE_TRACE_KEY, JSON.stringify(entries.slice(-DELETE_TRACE_LIMIT)));
+    console.debug('[delete-trace]', eventName, payload);
+}
+
+window.getDeleteTrace = function () {
+    return getDeleteTrace();
+};
+
+window.clearDeleteTrace = function () {
+    safeSetItem(DELETE_TRACE_KEY, JSON.stringify([]));
+};
 
 function getCloudOutbox() {
     const raw = safeGetItem(CLOUD_OUTBOX_KEY);
@@ -720,6 +752,7 @@ function rememberDeletedId(id, deletedAt = new Date().toISOString()) {
     const map = pruneDeletedIdsMap(getDeletedIdsMap());
     map[cleanId] = toText(deletedAt);
     setDeletedIdsMap(map);
+    pushDeleteTrace('local_tombstone_set', { id: cleanId, deletedAt: map[cleanId] });
 }
 
 function clearDeletedId(id) {
@@ -729,6 +762,7 @@ function clearDeletedId(id) {
     if (Object.prototype.hasOwnProperty.call(map, cleanId)) {
         delete map[cleanId];
         setDeletedIdsMap(map);
+        pushDeleteTrace('local_tombstone_cleared', { id: cleanId });
     }
 }
 
@@ -807,6 +841,12 @@ function enqueueCloudOperation(record, sheetName = "History", action = "add") {
         queuedAt: new Date().toISOString()
     });
     setCloudOutbox(compactCloudOutbox(outbox));
+    if (sheetName === 'History' && action === 'delete') {
+        pushDeleteTrace('delete_queued', {
+            id: normalizedRecord.id,
+            queueSize: getCloudOutbox().length
+        });
+    }
 }
 
 async function fetchWithTimeout(input, init = {}, timeoutMs = CLOUD_GET_TIMEOUT_MS) {
@@ -973,11 +1013,23 @@ async function flushCloudOutbox() {
         let sent = 0;
         for (const op of queue) {
             try {
+                if (op.action === 'delete' && op.sheetName === 'History') {
+                    pushDeleteTrace('delete_push_start', { id: toText(op.record?.id).trim() });
+                }
                 await pushToCloud(op.record, op.sheetName, op.action);
                 sent += 1;
+                if (op.action === 'delete' && op.sheetName === 'History') {
+                    pushDeleteTrace('delete_push_success', { id: toText(op.record?.id).trim() });
+                }
             } catch (e) {
                 failed.push(op);
                 console.warn('Cloud op failed, will retry:', op.action, op.record?.id, e.message);
+                if (op.action === 'delete' && op.sheetName === 'History') {
+                    pushDeleteTrace('delete_push_failed', {
+                        id: toText(op.record?.id).trim(),
+                        error: toText(e?.message)
+                    });
+                }
             }
         }
 
@@ -1390,6 +1442,13 @@ async function syncHistoryFromCloud(showUI = true) {
                 deletionDelta.deletedIds.forEach((id) => {
                     deletedIdsMap[id] = new Date().toISOString();
                 });
+                if (deletionDelta.deletedIds.length > 0) {
+                    pushDeleteTrace('cloud_delete_applied', {
+                        ids: deletionDelta.deletedIds,
+                        prevCloudCount: prevCloudIds.size,
+                        currentCloudCount: currentCloudIds.size
+                    });
+                }
 
                 if (showUI && deletionDelta.deletedIds.length > 0) {
                     showTransientNotice(`Из облака применено удалений: ${deletionDelta.deletedIds.length}.`, 'warn');
@@ -1712,6 +1771,10 @@ window.deleteRecord = async function (index) {
 
     const history = getHistory();
     const recordId = history[index].id;
+    pushDeleteTrace('delete_requested', {
+        id: toText(recordId).trim(),
+        index
+    });
     history.splice(index, 1);
     safeSetItem(STORAGE_KEY, JSON.stringify(history));
     renderHistory();
