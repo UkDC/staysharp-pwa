@@ -19,6 +19,7 @@ var SHEET_DATABASE = 'Database';
 var ALLOWED_READ_SHEETS = [SHEET_HISTORY, SHEET_DATABASE];
 var ALLOWED_WRITE_SHEETS = [SHEET_HISTORY];
 var CACHE_KEY_PREFIX = 'sheet_json_v1:';
+var REVISION_KEY_PREFIX = 'sheet_revision_v1:';
 var CACHE_MAX_PAYLOAD_CHARS = 90000;
 var CACHE_TTL_HISTORY_SEC = 12;
 var CACHE_TTL_DATABASE_SEC = 45;
@@ -53,7 +54,16 @@ function doGet(e) {
     if (ALLOWED_READ_SHEETS.indexOf(sheetName) === -1) {
       return jsonOut_({ error: 'Forbidden: Not allowed to read this sheet' });
     }
+    var metaOnly = (e && e.parameter && e.parameter.meta) ? String(e.parameter.meta) === '1' : false;
     var updatedAfter = (e && e.parameter && e.parameter.updatedAfter) ? e.parameter.updatedAfter : '';
+
+    if (metaOnly) {
+      var metaPayload = getSheetMetaPayload_(sheetName);
+      if (!metaPayload) {
+        return jsonOut_({ error: 'Sheet not found: ' + sheetName });
+      }
+      return jsonOut_(metaPayload);
+    }
 
     var cachedPayload = getCachedSheetPayload_(sheetName);
     if (cachedPayload) {
@@ -93,6 +103,7 @@ function doGet(e) {
     }
 
     var payload = JSON.stringify(out);
+    ensureSheetRevision_(sheetName);
     putCachedSheetPayload_(sheetName, payload);
     if (sheetName === SHEET_HISTORY && updatedAfter) {
       return jsonOut_(buildHistoryDeltaPayload_(out, updatedAfter));
@@ -281,6 +292,38 @@ function getSheetCacheTtl_(sheetName) {
   return sheetName === SHEET_DATABASE ? CACHE_TTL_DATABASE_SEC : CACHE_TTL_HISTORY_SEC;
 }
 
+function revisionKeyForSheet_(sheetName) {
+  return REVISION_KEY_PREFIX + String(sheetName || '');
+}
+
+function ensureSheetRevision_(sheetName) {
+  var props = PropertiesService.getScriptProperties();
+  var key = revisionKeyForSheet_(sheetName);
+  var current = props.getProperty(key);
+  if (current) return current;
+  current = nowIso_();
+  props.setProperty(key, current);
+  return current;
+}
+
+function touchSheetRevision_(sheetName, updatedAt) {
+  var nextValue = String(updatedAt || nowIso_());
+  try {
+    PropertiesService.getScriptProperties().setProperty(revisionKeyForSheet_(sheetName), nextValue);
+  } catch (_) {}
+  return nextValue;
+}
+
+function getSheetMetaPayload_(sheetName) {
+  var sheet = getSheet_(sheetName);
+  if (!sheet) return null;
+  return {
+    sheet: sheetName,
+    updatedAt: ensureSheetRevision_(sheetName),
+    rowCount: Math.max(0, sheet.getLastRow() - 1)
+  };
+}
+
 function cacheKeyForSheet_(sheetName) {
   return CACHE_KEY_PREFIX + String(sheetName || '');
 }
@@ -313,6 +356,7 @@ function putCachedSheetPayload_(sheetName, payload) {
 }
 
 function invalidateSheetCache_(sheetName) {
+  touchSheetRevision_(sheetName);
   try {
     CacheService.getScriptCache().remove(cacheKeyForSheet_(sheetName));
   } catch (_) {}

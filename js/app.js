@@ -215,6 +215,7 @@ function resolveInitialDatabase() {
         : [];
     const raw = safeGetItem(DB_STORAGE_KEY);
     if (!raw) {
+        clearCloudDatabaseMeta();
         if (fallback.length > 0) writeDatabaseCache(fallback);
         return fallback;
     }
@@ -224,6 +225,7 @@ function resolveInitialDatabase() {
         parsed = JSON.parse(raw);
     } catch (e) {
         safeRemoveItem(DB_STORAGE_KEY);
+        clearCloudDatabaseMeta();
         showTransientNotice('Локальный кэш базы поврежден и автоматически сброшен.', 'warn');
         if (fallback.length > 0) writeDatabaseCache(fallback);
         return fallback;
@@ -231,6 +233,7 @@ function resolveInitialDatabase() {
 
     if (Array.isArray(parsed)) {
         const migrated = sanitizeKnivesArray(parsed);
+        clearCloudDatabaseMeta();
         writeDatabaseCache(migrated);
         return migrated;
     }
@@ -244,6 +247,7 @@ function resolveInitialDatabase() {
     }
 
     safeRemoveItem(DB_STORAGE_KEY);
+    clearCloudDatabaseMeta();
     showTransientNotice('Локальный кэш базы поврежден и автоматически сброшен.', 'warn');
     if (fallback.length > 0) writeDatabaseCache(fallback);
     return fallback;
@@ -597,6 +601,7 @@ const CLOUD_GET_TIMEOUT_MS = 5500;
 const CLOUD_POST_TIMEOUT_MS = 6500;
 const CLOUD_OUTBOX_KEY = 'staysharp_cloud_outbox';
 const CLOUD_HISTORY_META_KEY = 'staysharp_cloud_history_meta';
+const CLOUD_DATABASE_META_KEY = 'staysharp_cloud_database_meta';
 const HISTORY_DELETED_IDS_KEY = 'staysharp_deleted_ids';
 const HISTORY_DELETED_IDS_TTL_MS = 1000 * 60 * 60 * 24 * 45; // 45 days
 const CLOUD_PUSH_INTERVAL_MS = 7000;
@@ -643,6 +648,33 @@ function setCloudHistoryMeta(meta) {
         updatedAt: toText(meta?.updatedAt || new Date().toISOString())
     };
     safeSetItem(CLOUD_HISTORY_META_KEY, JSON.stringify(normalized));
+}
+
+function getCloudDatabaseMeta() {
+    const raw = safeGetItem(CLOUD_DATABASE_META_KEY);
+    if (!raw) return { initialized: false, updatedAt: '' };
+    try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+            return {
+                initialized: !!parsed.initialized,
+                updatedAt: toText(parsed.updatedAt)
+            };
+        }
+    } catch (e) { }
+    return { initialized: false, updatedAt: '' };
+}
+
+function setCloudDatabaseMeta(meta) {
+    const normalized = {
+        initialized: !!meta?.initialized,
+        updatedAt: toText(meta?.updatedAt || new Date().toISOString())
+    };
+    safeSetItem(CLOUD_DATABASE_META_KEY, JSON.stringify(normalized));
+}
+
+function clearCloudDatabaseMeta() {
+    safeRemoveItem(CLOUD_DATABASE_META_KEY);
 }
 
 function getDeletedIdsMap() {
@@ -798,6 +830,36 @@ async function fetchWithTimeout(input, init = {}, timeoutMs = CLOUD_GET_TIMEOUT_
     } finally {
         clearTimeout(timeoutId);
     }
+}
+
+async function fetchCloudSheetMeta(sheetName) {
+    const url = new URL(GOOGLE_SCRIPT_URL);
+    url.searchParams.set('token', API_TOKEN);
+    url.searchParams.set('sheet', sheetName);
+    url.searchParams.set('meta', '1');
+    url.searchParams.set('_t', String(Date.now()));
+
+    const res = await fetchWithTimeout(url.toString(), { cache: 'no-store' }, CLOUD_GET_TIMEOUT_MS);
+    if (!res.ok) throw new Error(`Cloud ${sheetName} meta HTTP ${res.status}`);
+
+    const data = await res.json();
+    if (Array.isArray(data)) {
+        return {
+            updatedAt: '',
+            rowCount: data.length,
+            legacyPayload: data
+        };
+    }
+
+    if (!data || typeof data !== 'object' || data.error) {
+        throw new Error(`Cloud ${sheetName} meta returned invalid payload`);
+    }
+
+    return {
+        updatedAt: toText(data.updatedAt),
+        rowCount: Number.isFinite(Number(data.rowCount)) ? Number(data.rowCount) : 0,
+        legacyPayload: null
+    };
 }
 
 async function pushToCloud(record, sheetName = "History", action = "add") {
@@ -1240,66 +1302,100 @@ async function syncHistoryFromCloud(showUI = true) {
     let success = false;
     try {
         await flushCloudOutbox();
-        const localHistory = getHistory();
-        const historySnapshot = await fetchCloudHistoryRecords();
-        const cloudHistory = historySnapshot.records;
         const cloudMeta = getCloudHistoryMeta();
-        let deletedIdsMap = pruneDeletedIdsMap(getDeletedIdsMap());
-        const currentCloudIds = new Set((historySnapshot.cloudIds || []).map(id => toText(id).trim()).filter(Boolean));
+        let historySheetMeta = null;
 
-        let mergedHistory = mergeHistoryRecords(localHistory, cloudHistory, deletedIdsMap);
+        try {
+            historySheetMeta = await fetchCloudSheetMeta('History');
+        } catch (metaError) {
+            console.warn('History meta check unavailable, falling back to full sync:', metaError.message);
+        }
 
-        if (cloudMeta.initialized) {
-            const prevCloudIds = new Set((cloudMeta.cloudIds || []).map(id => toText(id).trim()).filter(Boolean));
-            const pendingOpsById = getPendingHistoryOpsById();
-            const deletionDelta = applyCloudDeletionDiff(mergedHistory, prevCloudIds, currentCloudIds, pendingOpsById);
-            mergedHistory = deletionDelta.records;
-            deletionDelta.deletedIds.forEach((id) => {
-                deletedIdsMap[id] = new Date().toISOString();
+        const skipHeavyFetch = !!(
+            cloudMeta.initialized &&
+            historySheetMeta &&
+            !historySheetMeta.legacyPayload &&
+            historySheetMeta.updatedAt &&
+            historySheetMeta.updatedAt === cloudMeta.updatedAt
+        );
+
+        if (skipHeavyFetch) {
+            success = true;
+            if (showUI && getCloudOutbox().length > 0) {
+                showTransientNotice(`Не удалось отправить в облако: ${getCloudOutbox().length} запис(ей). Оставлены в очереди для автоповтора.`, 'warn');
+            }
+        } else {
+            const localHistory = getHistory();
+            const historySnapshot = (historySheetMeta && Array.isArray(historySheetMeta.legacyPayload))
+                ? (() => {
+                    const records = sanitizeHistoryArray(historySheetMeta.legacyPayload);
+                    return {
+                        records,
+                        cloudIds: records.map(item => toText(item.id).trim()).filter(Boolean),
+                        lastUpdatedAt: getHistorySyncWatermark(records, cloudMeta.updatedAt),
+                        mode: 'full'
+                    };
+                })()
+                : await fetchCloudHistoryRecords();
+            const cloudHistory = historySnapshot.records;
+            const resolvedHistoryMetaUpdatedAt = toText(historySheetMeta?.updatedAt || historySnapshot.lastUpdatedAt || cloudMeta.updatedAt);
+            let deletedIdsMap = pruneDeletedIdsMap(getDeletedIdsMap());
+            const currentCloudIds = new Set((historySnapshot.cloudIds || []).map(id => toText(id).trim()).filter(Boolean));
+
+            let mergedHistory = mergeHistoryRecords(localHistory, cloudHistory, deletedIdsMap);
+
+            if (cloudMeta.initialized) {
+                const prevCloudIds = new Set((cloudMeta.cloudIds || []).map(id => toText(id).trim()).filter(Boolean));
+                const pendingOpsById = getPendingHistoryOpsById();
+                const deletionDelta = applyCloudDeletionDiff(mergedHistory, prevCloudIds, currentCloudIds, pendingOpsById);
+                mergedHistory = deletionDelta.records;
+                deletionDelta.deletedIds.forEach((id) => {
+                    deletedIdsMap[id] = new Date().toISOString();
+                });
+
+                if (showUI && deletionDelta.deletedIds.length > 0) {
+                    showTransientNotice(`Из облака применено удалений: ${deletionDelta.deletedIds.length}.`, 'warn');
+                }
+
+                if (showUI && prevCloudIds.size > 0 && currentCloudIds.size === 0) {
+                    showTransientNotice('Облако вернуло пустой журнал: массовое удаление локальных записей пропущено для защиты данных.', 'warn');
+                }
+            }
+
+            // If a newer cloud record reappears, clear local deletion tombstone for that ID.
+            cloudHistory.forEach((item) => {
+                if (!item.id) return;
+                const deletedAtRaw = toText(deletedIdsMap[item.id]);
+                if (!deletedAtRaw) return;
+                const deletedTs = Date.parse(deletedAtRaw);
+                const itemTs = parseRecordTimestamp(item);
+                if (!isNaN(deletedTs) && itemTs > deletedTs) {
+                    delete deletedIdsMap[item.id];
+                }
             });
 
-            if (showUI && deletionDelta.deletedIds.length > 0) {
-                showTransientNotice(`Из облака применено удалений: ${deletionDelta.deletedIds.length}.`, 'warn');
-            }
+            deletedIdsMap = pruneDeletedIdsMap(deletedIdsMap);
+            setDeletedIdsMap(deletedIdsMap);
+            setCloudHistoryMeta({
+                initialized: true,
+                cloudIds: Array.from(currentCloudIds),
+                updatedAt: resolvedHistoryMetaUpdatedAt || getHistorySyncWatermark(cloudHistory, historySnapshot.lastUpdatedAt || cloudMeta.updatedAt)
+            });
 
-            if (showUI && prevCloudIds.size > 0 && currentCloudIds.size === 0) {
-                showTransientNotice('Облако вернуло пустой журнал: массовое удаление локальных записей пропущено для защиты данных.', 'warn');
+            safeSetItem(STORAGE_KEY, JSON.stringify(mergedHistory));
+            if (typeof renderHistory === 'function') renderHistory();
+
+            if (showUI && !cloudMeta.initialized && cloudHistory.length === 0 && localHistory.length > 0) {
+                showTransientNotice('Облако пустое: локальный журнал сохранен, данные не удалены.', 'warn');
             }
+            if (showUI) {
+                const pending = getCloudOutbox().length;
+                if (pending > 0) {
+                    showTransientNotice(`Не удалось отправить в облако: ${pending} запис(ей). Оставлены в очереди для автоповтора.`, 'warn');
+                }
+            }
+            success = true;
         }
-
-        // If a newer cloud record reappears, clear local deletion tombstone for that ID.
-        cloudHistory.forEach((item) => {
-            if (!item.id) return;
-            const deletedAtRaw = toText(deletedIdsMap[item.id]);
-            if (!deletedAtRaw) return;
-            const deletedTs = Date.parse(deletedAtRaw);
-            const itemTs = parseRecordTimestamp(item);
-            if (!isNaN(deletedTs) && itemTs > deletedTs) {
-                delete deletedIdsMap[item.id];
-            }
-        });
-
-        deletedIdsMap = pruneDeletedIdsMap(deletedIdsMap);
-        setDeletedIdsMap(deletedIdsMap);
-        setCloudHistoryMeta({
-            initialized: true,
-            cloudIds: Array.from(currentCloudIds),
-            updatedAt: getHistorySyncWatermark(cloudHistory, historySnapshot.lastUpdatedAt || cloudMeta.updatedAt)
-        });
-
-        safeSetItem(STORAGE_KEY, JSON.stringify(mergedHistory));
-        if (typeof renderHistory === 'function') renderHistory();
-
-        if (showUI && !cloudMeta.initialized && cloudHistory.length === 0 && localHistory.length > 0) {
-            showTransientNotice('Облако пустое: локальный журнал сохранен, данные не удалены.', 'warn');
-        }
-        if (showUI) {
-            const pending = getCloudOutbox().length;
-            if (pending > 0) {
-                showTransientNotice(`Не удалось отправить в облако: ${pending} запис(ей). Оставлены в очереди для автоповтора.`, 'warn');
-            }
-        }
-        success = true;
     } catch (e) {
         console.error("History sync failed", e);
         if (showUI) await appAlert('Ошибка сети History: ' + e.message, 'Ошибка синхронизации');
@@ -1365,9 +1461,34 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
 
     let success = false;
     try {
-        const res = await fetchWithTimeout(`${GOOGLE_SCRIPT_URL}?token=${API_TOKEN}&sheet=Database&_t=${Date.now()}`, { cache: 'no-store' }, CLOUD_GET_TIMEOUT_MS);
-        if (res.ok) {
-            const data = await res.json();
+        const dbMeta = getCloudDatabaseMeta();
+        let databaseSheetMeta = null;
+
+        try {
+            databaseSheetMeta = await fetchCloudSheetMeta('Database');
+        } catch (metaError) {
+            console.warn('Database meta check unavailable, falling back to full sync:', metaError.message);
+        }
+
+        const skipHeavyFetch = !!(
+            dbMeta.initialized &&
+            databaseSheetMeta &&
+            !databaseSheetMeta.legacyPayload &&
+            databaseSheetMeta.updatedAt &&
+            databaseSheetMeta.updatedAt === dbMeta.updatedAt
+        );
+
+        if (skipHeavyFetch) {
+            success = true;
+        } else {
+            const data = (databaseSheetMeta && Array.isArray(databaseSheetMeta.legacyPayload))
+                ? databaseSheetMeta.legacyPayload
+                : await (async () => {
+                    const res = await fetchWithTimeout(`${GOOGLE_SCRIPT_URL}?token=${API_TOKEN}&sheet=Database&_t=${Date.now()}`, { cache: 'no-store' }, CLOUD_GET_TIMEOUT_MS);
+                    if (!res.ok) throw new Error(`Cloud Database HTTP ${res.status}`);
+                    return res.json();
+                })();
+
             if (Array.isArray(data) && !data.error && data.length > 0) {
                 window.allKnives = data.map(k => ({
                     brand: k.Brand || k.brand || "",
@@ -1387,7 +1508,17 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
                 success = true;
             } else if (Array.isArray(data) && data.length === 0) {
                 console.log("Database tab is empty in cloud.");
+                success = true;
+            } else if (data && data.error) {
+                throw new Error(data.error);
             }
+        }
+
+        if (success) {
+            setCloudDatabaseMeta({
+                initialized: true,
+                updatedAt: toText(databaseSheetMeta?.updatedAt || dbMeta.updatedAt || new Date().toISOString())
+            });
         }
     } catch (e) {
         console.error("Database sync failed", e);
@@ -2224,6 +2355,7 @@ function resetDatabaseCacheWithDefaults() {
         ? sanitizeKnivesArray(allKnives)
         : [];
     safeRemoveItem(DB_STORAGE_KEY);
+    clearCloudDatabaseMeta();
     window.allKnives = defaults;
     writeDatabaseCache(window.allKnives);
 
