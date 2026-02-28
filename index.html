@@ -15,7 +15,7 @@
     <link rel="icon" href="/staysharp-pwa/favicon.ico">
     <link rel="shortcut icon" href="/staysharp-pwa/favicon.ico">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="css/style.css?v=1772285603">
+    <link rel="stylesheet" href="css/style.css?v=1772285775">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -351,6 +351,11 @@
                             style="position: relative; z-index: 1000;">
                             Сохранить в журнал
                         </button>
+                        <div id="save-record-feedback" class="save-feedback" aria-live="polite">
+                            <span id="save-record-feedback-chip" class="save-feedback-chip">
+                                Запись добавлена в журнал
+                            </span>
+                        </div>
                         <button id="btn-cancel-edit" class="btn-secondary hidden"
                             style="width: 100%; margin-top: 10px;">
                             Отменить редактирование
@@ -594,7 +599,7 @@
 
     <!-- Scripts -->
     <script src="js/knives.js?v=124"></script>
-    <script src="js/app.js?v=1772285603"></script>
+    <script src="js/app.js?v=1772285775"></script>
     <script>
         const takeSessionFlag = (key) => {
             try {

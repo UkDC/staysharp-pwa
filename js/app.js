@@ -2543,7 +2543,27 @@ if (predictResetBtn) {
 
 let isSavingRecord = false;
 let lastSaveEventAt = 0;
+let saveFeedbackTimer = null;
 const SAVE_EVENT_DEDUP_MS = 700;
+
+function showSaveRecordFeedback(message) {
+    const feedback = document.getElementById('save-record-feedback');
+    const chip = document.getElementById('save-record-feedback-chip');
+    if (!feedback || !chip) return;
+
+    if (saveFeedbackTimer) {
+        clearTimeout(saveFeedbackTimer);
+        saveFeedbackTimer = null;
+    }
+
+    chip.textContent = toText(message).trim() || 'Запись добавлена в журнал';
+    feedback.classList.add('is-visible');
+
+    saveFeedbackTimer = setTimeout(() => {
+        feedback.classList.remove('is-visible');
+        saveFeedbackTimer = null;
+    }, 1200);
+}
 
 window.saveRecordClick = async function (e) {
     // iOS PWA may fire touch + click for the same tap; keep only first event.
@@ -2608,7 +2628,9 @@ window.saveRecordClick = async function (e) {
         });
         const record = touchHistoryRecord(baseRecord, true);
 
-        if (editIndex >= 0) {
+        const wasEditing = editIndex >= 0;
+
+        if (wasEditing) {
             // Update existing record
             clearDeletedId(record.id);
             historyOpts[editIndex] = record;
@@ -2628,12 +2650,10 @@ window.saveRecordClick = async function (e) {
         clearForm();
 
         const btn = document.getElementById('btn-save-record');
-        const originalText = btn.textContent;
-        btn.textContent = 'Сохранено';
         btn.classList.add('is-success-flash');
+        showSaveRecordFeedback(wasEditing ? 'Запись обновлена' : 'Запись добавлена в журнал');
 
         setTimeout(() => {
-            btn.textContent = originalText;
             btn.classList.remove('is-success-flash');
             // Auto switch to History AFTER confirmation is shown
             document.querySelector('[data-target="history-view"]').click();

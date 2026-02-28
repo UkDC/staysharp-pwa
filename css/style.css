@@ -1397,18 +1397,59 @@ select.predict-select:focus {
 }
 
 .btn-primary.is-success-flash {
-  background:
-    linear-gradient(135deg, rgba(120, 255, 198, 0.22), rgba(61, 200, 139, 0.92)),
-    linear-gradient(135deg, var(--accent), var(--accent-warm));
-  color: #eefdf5;
+  color: #fff7f2;
   box-shadow:
-    0 10px 26px rgba(61, 200, 139, 0.22),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+    0 10px 26px rgba(227, 82, 58, 0.24),
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
 .btn-primary.is-success-flash::before {
   opacity: 1;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent 58%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 58%);
+}
+
+.save-feedback {
+  min-height: 28px;
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  pointer-events: none;
+}
+
+.save-feedback-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(52, 211, 153, 0.2);
+  background: rgba(52, 211, 153, 0.08);
+  color: #bdf7df;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+  transition: opacity 0.22s ease, transform 0.22s var(--ease-spring);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 6px 20px rgba(18, 34, 27, 0.24);
+}
+
+.save-feedback-chip::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7df5c5, #34d399);
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.32);
+}
+
+.save-feedback.is-visible .save-feedback-chip {
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
 
 .btn-secondary {
