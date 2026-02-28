@@ -1396,6 +1396,21 @@ select.predict-select:focus {
   box-shadow: 0 4px 12px var(--accent-glow);
 }
 
+.btn-primary.is-success-flash {
+  background:
+    linear-gradient(135deg, rgba(120, 255, 198, 0.22), rgba(61, 200, 139, 0.92)),
+    linear-gradient(135deg, var(--accent), var(--accent-warm));
+  color: #eefdf5;
+  box-shadow:
+    0 10px 26px rgba(61, 200, 139, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+.btn-primary.is-success-flash::before {
+  opacity: 1;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent 58%);
+}
+
 .btn-secondary {
   background: var(--input-bg);
   color: var(--text-secondary);

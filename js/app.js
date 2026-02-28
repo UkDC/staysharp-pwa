@@ -2629,14 +2629,12 @@ window.saveRecordClick = async function (e) {
 
         const btn = document.getElementById('btn-save-record');
         const originalText = btn.textContent;
-        btn.textContent = '✅ Сохранено!';
-        btn.style.backgroundColor = 'var(--success)';
-        btn.style.borderColor = 'var(--success)';
+        btn.textContent = 'Сохранено';
+        btn.classList.add('is-success-flash');
 
         setTimeout(() => {
             btn.textContent = originalText;
-            btn.style.backgroundColor = '';
-            btn.style.borderColor = '';
+            btn.classList.remove('is-success-flash');
             // Auto switch to History AFTER confirmation is shown
             document.querySelector('[data-target="history-view"]').click();
 
