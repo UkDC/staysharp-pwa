@@ -1875,6 +1875,29 @@ select.predict-select:focus {
   line-height: 1.6;
 }
 
+#empty-history {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: clamp(420px, 58vh, 680px);
+  padding: 28px 20px 36px;
+}
+
+#empty-history .empty-state-inner {
+  width: min(100%, 520px);
+  max-width: none;
+  gap: 20px;
+}
+
+#empty-history .empty-state-img {
+  display: block;
+  width: min(100%, 360px);
+  max-width: 78vw;
+  height: auto;
+  opacity: 0.82;
+  margin: 0 auto;
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
