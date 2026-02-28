@@ -963,13 +963,13 @@ async function pushToCloud(record, sheetName = "History", action = "add") {
     throw new Error(`Unexpected cloud response: ${responseText.slice(0, 120)}`);
 }
 
-async function fetchCloudHistoryRecords() {
+async function fetchCloudHistoryRecords(forceFull = false) {
     const cloudMeta = getCloudHistoryMeta();
     const url = new URL(GOOGLE_SCRIPT_URL);
     url.searchParams.set('token', API_TOKEN);
     url.searchParams.set('sheet', 'History');
     url.searchParams.set('_t', String(Date.now()));
-    if (cloudMeta.initialized && cloudMeta.updatedAt) {
+    if (!forceFull && cloudMeta.initialized && cloudMeta.updatedAt) {
         url.searchParams.set('updatedAfter', cloudMeta.updatedAt);
     }
 
@@ -1461,7 +1461,7 @@ async function syncHistoryFromCloud(showUI = true) {
                         mode: 'full'
                     };
                 })()
-                : await fetchCloudHistoryRecords();
+                : await fetchCloudHistoryRecords(showUI);
             const cloudHistory = historySnapshot.records;
             const resolvedHistoryMetaUpdatedAt = toText(historySheetMeta?.updatedAt || historySnapshot.lastUpdatedAt || cloudMeta.updatedAt);
             let deletedIdsMap = pruneDeletedIdsMap(getDeletedIdsMap());
