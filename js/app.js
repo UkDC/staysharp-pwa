@@ -607,6 +607,7 @@ const DELETE_TRACE_KEY = 'staysharp_delete_trace';
 const HISTORY_DELETED_IDS_TTL_MS = 1000 * 60 * 60 * 24 * 45; // 45 days
 const CLOUD_PUSH_INTERVAL_MS = 7000;
 const CLOUD_PULL_INTERVAL_MS = 30000;
+const STALE_DELETE_OP_TTL_MS = 1000 * 60; // 1 minute
 let cloudQueueFlushPromise = null;
 let cloudPushIntervalId = null;
 let cloudPullIntervalId = null;
@@ -657,6 +658,42 @@ function getCloudOutbox() {
 
 function setCloudOutbox(items) {
     safeSetItem(CLOUD_OUTBOX_KEY, JSON.stringify(Array.isArray(items) ? items : []));
+}
+
+function dropStaleDeleteOpsForExistingCloudIds(existingCloudIds) {
+    if (!(existingCloudIds instanceof Set) || existingCloudIds.size === 0) {
+        return [];
+    }
+
+    const now = Date.now();
+    const staleIds = [];
+    const kept = [];
+
+    getCloudOutbox().forEach((op) => {
+        const action = toText(op?.action);
+        const sheetName = toText(op?.sheetName || 'History');
+        const recordId = toText(op?.record?.id).trim();
+
+        if (sheetName !== 'History' || action !== 'delete' || !recordId || !existingCloudIds.has(recordId)) {
+            kept.push(op);
+            return;
+        }
+
+        const queuedTs = Date.parse(toText(op?.queuedAt));
+        const isFresh = !isNaN(queuedTs) && (now - queuedTs) < STALE_DELETE_OP_TTL_MS;
+        if (isFresh) {
+            kept.push(op);
+            return;
+        }
+
+        staleIds.push(recordId);
+    });
+
+    if (staleIds.length > 0) {
+        setCloudOutbox(compactCloudOutbox(kept));
+    }
+
+    return staleIds;
 }
 
 function getCloudHistoryMeta() {
@@ -1466,6 +1503,15 @@ async function syncHistoryFromCloud(showUI = true) {
             const resolvedHistoryMetaUpdatedAt = toText(historySheetMeta?.updatedAt || historySnapshot.lastUpdatedAt || cloudMeta.updatedAt);
             let deletedIdsMap = pruneDeletedIdsMap(getDeletedIdsMap());
             const currentCloudIds = new Set((historySnapshot.cloudIds || []).map(id => toText(id).trim()).filter(Boolean));
+            let staleDeleteIds = [];
+
+            if (showUI) {
+                staleDeleteIds = dropStaleDeleteOpsForExistingCloudIds(currentCloudIds);
+                if (staleDeleteIds.length > 0) {
+                    pushDeleteTrace('stale_delete_dropped', { ids: staleDeleteIds });
+                }
+            }
+
             const pendingOpsById = getPendingHistoryOpsById();
 
             // Manual sync acts as a recovery path: if a record still exists in cloud and there is
