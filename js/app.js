@@ -2989,15 +2989,18 @@ function renderHistory() {
     const tbody = document.querySelector('#history-table tbody');
     const emptyState = document.getElementById('empty-history');
     const tableEl = document.getElementById('history-table');
+    const tableWrap = tableEl ? tableEl.closest('.table-responsive') : null;
 
     tbody.innerHTML = '';
 
     if (history.length === 0) {
         emptyState.classList.remove('hidden');
         tableEl.classList.add('hidden');
+        if (tableWrap) tableWrap.classList.add('hidden');
     } else {
         emptyState.classList.add('hidden');
         tableEl.classList.remove('hidden');
+        if (tableWrap) tableWrap.classList.remove('hidden');
 
         history.slice().reverse().forEach((item, revIndex) => {
             const index = history.length - 1 - revIndex;
