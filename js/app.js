@@ -1217,48 +1217,6 @@ function setDbPullIndicatorState(state = 'hidden', distance = 0) {
     }
 }
 
-function releaseHistoryPullToBackgroundSync() {
-    historyPullState.isSyncing = true;
-    setHistoryPullIndicatorState('loading');
-
-    setTimeout(() => {
-        setHistoryPullIndicatorState('hidden');
-    }, 140);
-
-    void (async () => {
-        try {
-            const success = await syncHistoryFromCloud(false);
-            showTransientNotice(
-                success ? 'Журнал обновлен.' : 'Ошибка синхронизации журнала.',
-                success ? 'success' : 'warn'
-            );
-        } finally {
-            historyPullState.isSyncing = false;
-        }
-    })();
-}
-
-function releaseDbPullToBackgroundSync() {
-    dbPullState.isSyncing = true;
-    setDbPullIndicatorState('loading');
-
-    setTimeout(() => {
-        setDbPullIndicatorState('hidden');
-    }, 140);
-
-    void (async () => {
-        try {
-            const success = await syncDatabaseFromCloud(false);
-            showTransientNotice(
-                success ? 'Справочник обновлен.' : 'Ошибка синхронизации справочника.',
-                success ? 'success' : 'warn'
-            );
-        } finally {
-            dbPullState.isSyncing = false;
-        }
-    })();
-}
-
 function isDbViewActive() {
     const dbView = document.getElementById('db-view');
     return !!dbView && dbView.classList.contains('active');
@@ -2655,7 +2613,7 @@ function bindHistoryPullToRefresh() {
         historyPullState.distance = 0;
 
         if (shouldSync) {
-            releaseHistoryPullToBackgroundSync();
+            void syncHistoryFromCloud(true);
             return;
         }
 
@@ -2725,7 +2683,7 @@ function bindDbPullToRefresh() {
         dbPullState.distance = 0;
 
         if (shouldSync) {
-            releaseDbPullToBackgroundSync();
+            void syncDatabaseFromCloud(false);
             return;
         }
 
