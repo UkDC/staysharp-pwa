@@ -1915,13 +1915,30 @@ select.predict-select:focus {
   gap: 12px;
 }
 
+.empty-state-media {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: min(100%, 360px);
+  height: clamp(180px, 38vw, 250px);
+  overflow: hidden;
+  border-radius: 22px;
+  background: rgba(8, 12, 20, 0.48);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
 .empty-state-img {
-  width: 200px;
-  height: 200px;
+  width: 100%;
+  max-width: none;
+  height: auto;
   object-fit: contain;
-  border-radius: var(--radius-lg);
   opacity: 0.7;
   filter: drop-shadow(0 0 30px rgba(227, 82, 58, 0.15));
+  transform: translateY(-12%) scale(1.08);
+  transform-origin: center top;
   animation: breathe 4s ease-in-out infinite;
 }
 
@@ -1954,11 +1971,8 @@ select.predict-select:focus {
 
 #empty-history .empty-state-img {
   display: block;
-  width: min(100%, 360px);
-  max-width: 78vw;
-  height: auto;
   opacity: 0.82;
-  margin: 0 auto;
+  margin: 0;
 }
 
 @media (min-width: 960px) {
@@ -1975,14 +1989,17 @@ select.predict-select:focus {
     gap: 16px;
   }
 
+  #empty-history .empty-state-media {
+    width: min(100%, 460px);
+    height: clamp(180px, 16vw, 220px);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(8, 12, 20, 0.16)),
+      url('../img/empty_state.png') no-repeat center 22% / 100% auto,
+      rgba(8, 12, 20, 0.5);
+  }
+
   #empty-history .empty-state-img {
-    width: min(100%, 420px);
-    max-width: 100%;
-    height: clamp(150px, 14vw, 190px);
-    object-fit: cover;
-    object-position: center top;
-    border-radius: 20px;
-    margin: 0 auto;
+    display: none;
   }
 
   #empty-history .empty-state-copy {
