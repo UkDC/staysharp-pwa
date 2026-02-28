@@ -1222,16 +1222,19 @@ function releaseHistoryPullToBackgroundSync() {
     setHistoryPullIndicatorState('loading');
 
     setTimeout(() => {
-        historyPullState.isSyncing = false;
         setHistoryPullIndicatorState('hidden');
     }, 140);
 
     void (async () => {
-        const success = await syncHistoryFromCloud(false);
-        showTransientNotice(
-            success ? 'Журнал обновлен.' : 'Ошибка синхронизации журнала.',
-            success ? 'success' : 'warn'
-        );
+        try {
+            const success = await syncHistoryFromCloud(false);
+            showTransientNotice(
+                success ? 'Журнал обновлен.' : 'Ошибка синхронизации журнала.',
+                success ? 'success' : 'warn'
+            );
+        } finally {
+            historyPullState.isSyncing = false;
+        }
     })();
 }
 
@@ -1240,16 +1243,19 @@ function releaseDbPullToBackgroundSync() {
     setDbPullIndicatorState('loading');
 
     setTimeout(() => {
-        dbPullState.isSyncing = false;
         setDbPullIndicatorState('hidden');
     }, 140);
 
     void (async () => {
-        const success = await syncDatabaseFromCloud(false);
-        showTransientNotice(
-            success ? 'Справочник обновлен.' : 'Ошибка синхронизации справочника.',
-            success ? 'success' : 'warn'
-        );
+        try {
+            const success = await syncDatabaseFromCloud(false);
+            showTransientNotice(
+                success ? 'Справочник обновлен.' : 'Ошибка синхронизации справочника.',
+                success ? 'success' : 'warn'
+            );
+        } finally {
+            dbPullState.isSyncing = false;
+        }
     })();
 }
 
