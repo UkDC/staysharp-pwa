@@ -2834,6 +2834,23 @@ function bindHistoryPullToRefresh() {
         }
     };
 
+    const finishPullGesture = () => {
+        if (!historyPullState.dragging) return;
+
+        const shouldSync = historyPullState.ready && !historyPullState.isSyncing && isHistoryViewActive();
+        historyPullState.dragging = false;
+        historyPullState.ready = false;
+        historyPullState.startY = 0;
+        historyPullState.distance = 0;
+
+        if (shouldSync) {
+            void syncHistoryFromCloud(true);
+            return;
+        }
+
+        setHistoryPullIndicatorState('hidden');
+    };
+
     contentArea.addEventListener('touchstart', (event) => {
         if (historyPullState.isSyncing || !isHistoryViewActive() || contentArea.scrollTop > 0 || event.touches.length !== 1) {
             resetPullGesture();
@@ -2867,24 +2884,10 @@ function bindHistoryPullToRefresh() {
         }
     }, { passive: false });
 
-    contentArea.addEventListener('touchend', () => {
-        if (!historyPullState.dragging) return;
-
-        const shouldSync = historyPullState.ready && !historyPullState.isSyncing && isHistoryViewActive();
-        historyPullState.dragging = false;
-        historyPullState.ready = false;
-        historyPullState.startY = 0;
-        historyPullState.distance = 0;
-
-        if (shouldSync) {
-            void syncHistoryFromCloud(true);
-            return;
-        }
-
-        setHistoryPullIndicatorState('hidden');
-    });
-
-    contentArea.addEventListener('touchcancel', resetPullGesture);
+    contentArea.addEventListener('touchend', finishPullGesture, { passive: true });
+    contentArea.addEventListener('touchcancel', resetPullGesture, { passive: true });
+    window.addEventListener('touchend', finishPullGesture, { passive: true });
+    window.addEventListener('touchcancel', resetPullGesture, { passive: true });
 
     contentArea.dataset.historyPullBound = '1';
 }
@@ -2902,6 +2905,23 @@ function bindDbPullToRefresh() {
         if (!dbPullState.isSyncing) {
             setDbPullIndicatorState('hidden');
         }
+    };
+
+    const finishPullGesture = () => {
+        if (!dbPullState.dragging) return;
+
+        const shouldSync = dbPullState.ready && !dbPullState.isSyncing && isDbViewActive();
+        dbPullState.dragging = false;
+        dbPullState.ready = false;
+        dbPullState.startY = 0;
+        dbPullState.distance = 0;
+
+        if (shouldSync) {
+            void syncDatabaseFromCloud(false);
+            return;
+        }
+
+        setDbPullIndicatorState('hidden');
     };
 
     contentArea.addEventListener('touchstart', (event) => {
@@ -2937,24 +2957,10 @@ function bindDbPullToRefresh() {
         }
     }, { passive: false });
 
-    contentArea.addEventListener('touchend', () => {
-        if (!dbPullState.dragging) return;
-
-        const shouldSync = dbPullState.ready && !dbPullState.isSyncing && isDbViewActive();
-        dbPullState.dragging = false;
-        dbPullState.ready = false;
-        dbPullState.startY = 0;
-        dbPullState.distance = 0;
-
-        if (shouldSync) {
-            void syncDatabaseFromCloud(false);
-            return;
-        }
-
-        setDbPullIndicatorState('hidden');
-    });
-
-    contentArea.addEventListener('touchcancel', resetPullGesture);
+    contentArea.addEventListener('touchend', finishPullGesture, { passive: true });
+    contentArea.addEventListener('touchcancel', resetPullGesture, { passive: true });
+    window.addEventListener('touchend', finishPullGesture, { passive: true });
+    window.addEventListener('touchcancel', resetPullGesture, { passive: true });
 
     contentArea.dataset.dbPullBound = '1';
 }
