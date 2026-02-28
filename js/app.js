@@ -615,7 +615,7 @@ let historySyncPromise = null;
 let databaseSyncPromise = null;
 const DELETE_TRACE_LIMIT = 80;
 
-function getDeleteTrace() {
+function readDeleteTrace() {
     const raw = safeGetItem(DELETE_TRACE_KEY);
     if (!raw) return [];
     try {
@@ -627,7 +627,7 @@ function getDeleteTrace() {
 }
 
 function pushDeleteTrace(eventName, payload = {}) {
-    const entries = getDeleteTrace();
+    const entries = readDeleteTrace();
     entries.push({
         at: new Date().toISOString(),
         event: toText(eventName),
@@ -638,7 +638,7 @@ function pushDeleteTrace(eventName, payload = {}) {
 }
 
 window.getDeleteTrace = function () {
-    return getDeleteTrace();
+    return readDeleteTrace();
 };
 
 window.clearDeleteTrace = function () {
