@@ -1466,12 +1466,28 @@ async function syncHistoryFromCloud(showUI = true) {
             const resolvedHistoryMetaUpdatedAt = toText(historySheetMeta?.updatedAt || historySnapshot.lastUpdatedAt || cloudMeta.updatedAt);
             let deletedIdsMap = pruneDeletedIdsMap(getDeletedIdsMap());
             const currentCloudIds = new Set((historySnapshot.cloudIds || []).map(id => toText(id).trim()).filter(Boolean));
+            const pendingOpsById = getPendingHistoryOpsById();
+
+            // Manual sync acts as a recovery path: if a record still exists in cloud and there is
+            // no pending local delete for it, an old local tombstone should not keep hiding it forever.
+            if (showUI) {
+                const revivedIds = [];
+                currentCloudIds.forEach((id) => {
+                    if (!deletedIdsMap[id]) return;
+                    const pending = pendingOpsById.get(id);
+                    if (pending && pending.action === 'delete') return;
+                    delete deletedIdsMap[id];
+                    revivedIds.push(id);
+                });
+                if (revivedIds.length > 0) {
+                    pushDeleteTrace('cloud_tombstone_reconciled', { ids: revivedIds });
+                }
+            }
 
             let mergedHistory = mergeHistoryRecords(localHistory, cloudHistory, deletedIdsMap);
 
             if (cloudMeta.initialized) {
                 const prevCloudIds = new Set((cloudMeta.cloudIds || []).map(id => toText(id).trim()).filter(Boolean));
-                const pendingOpsById = getPendingHistoryOpsById();
                 const deletionDelta = applyCloudDeletionDiff(mergedHistory, prevCloudIds, currentCloudIds, pendingOpsById);
                 mergedHistory = deletionDelta.records;
                 deletionDelta.deletedIds.forEach((id) => {
