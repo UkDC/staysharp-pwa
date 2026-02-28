@@ -684,6 +684,28 @@ function setCloudHistoryMeta(meta) {
     safeSetItem(CLOUD_HISTORY_META_KEY, JSON.stringify(normalized));
 }
 
+function rememberCloudHistoryMutation(op) {
+    if (!op || toText(op.sheetName || 'History') !== 'History') return;
+
+    const recordId = toText(op.record?.id).trim();
+    if (!recordId) return;
+
+    const meta = getCloudHistoryMeta();
+    const cloudIds = new Set((meta.cloudIds || []).map(id => toText(id).trim()).filter(Boolean));
+
+    if (toText(op.action) === 'delete') {
+        cloudIds.delete(recordId);
+    } else {
+        cloudIds.add(recordId);
+    }
+
+    setCloudHistoryMeta({
+        initialized: true,
+        cloudIds: Array.from(cloudIds),
+        updatedAt: meta.updatedAt
+    });
+}
+
 function getCloudDatabaseMeta() {
     const raw = safeGetItem(CLOUD_DATABASE_META_KEY);
     if (!raw) return { initialized: false, updatedAt: '' };
@@ -708,7 +730,7 @@ function setCloudDatabaseMeta(meta) {
 }
 
 function clearCloudDatabaseMeta() {
-    safeRemoveItem(CLOUD_DATABASE_META_KEY);
+    safeRemoveItem('staysharp_cloud_database_meta');
 }
 
 function getDeletedIdsMap() {
@@ -1017,6 +1039,7 @@ async function flushCloudOutbox() {
                     pushDeleteTrace('delete_push_start', { id: toText(op.record?.id).trim() });
                 }
                 await pushToCloud(op.record, op.sheetName, op.action);
+                rememberCloudHistoryMutation(op);
                 sent += 1;
                 if (op.action === 'delete' && op.sheetName === 'History') {
                     pushDeleteTrace('delete_push_success', { id: toText(op.record?.id).trim() });
@@ -1050,6 +1073,7 @@ function mergeHistoryRecords(localHistory, cloudHistory, deletedIdsMap = {}) {
     const merged = local.slice();
     const indexById = new Map();
     const seenNoId = new Set();
+    const noIdIndexByFp = new Map();
 
     merged.forEach((item, index) => {
         if (item.id) {
@@ -1058,9 +1082,13 @@ function mergeHistoryRecords(localHistory, cloudHistory, deletedIdsMap = {}) {
         }
         const fp = `${item.date}|${item.brand}|${item.series}|${item.steel}|${item.angle}|${item.comments}`;
         seenNoId.add(fp);
+        if (!noIdIndexByFp.has(fp)) {
+            noIdIndexByFp.set(fp, index);
+        }
     });
 
     cloud.forEach((item) => {
+        const fp = `${item.date}|${item.brand}|${item.series}|${item.steel}|${item.angle}|${item.comments}`;
         if (item.id) {
             const deletedAtRaw = toText(deletedIdsMap[item.id]);
             if (deletedAtRaw) {
@@ -1073,6 +1101,13 @@ function mergeHistoryRecords(localHistory, cloudHistory, deletedIdsMap = {}) {
 
             const existingIdx = indexById.get(item.id);
             if (existingIdx === undefined) {
+                const legacyIdx = noIdIndexByFp.get(fp);
+                if (legacyIdx !== undefined) {
+                    merged[legacyIdx] = item;
+                    indexById.set(item.id, legacyIdx);
+                    noIdIndexByFp.delete(fp);
+                    return;
+                }
                 indexById.set(item.id, merged.length);
                 merged.push(item);
                 return;
@@ -1101,9 +1136,9 @@ function mergeHistoryRecords(localHistory, cloudHistory, deletedIdsMap = {}) {
             return;
         }
 
-        const fp = `${item.date}|${item.brand}|${item.series}|${item.steel}|${item.angle}|${item.comments}`;
         if (!seenNoId.has(fp)) {
             seenNoId.add(fp);
+            noIdIndexByFp.set(fp, merged.length);
             merged.push(item);
         }
     });

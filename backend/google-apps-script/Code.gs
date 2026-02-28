@@ -58,6 +58,12 @@ function readSheetRows_(sheet) {
   if (!values || values.length < 2) return [];
 
   var headers = values[0].map(function (h) { return String(h); });
+  var meta = buildHeaderMeta_(headers);
+
+  if (String(sheet.getName()) === SHEET_HISTORY) {
+    backfillHistoryTechnicalFields_(sheet, values, meta);
+  }
+
   var rows = [];
 
   for (var i = 1; i < values.length; i++) {
@@ -72,6 +78,44 @@ function readSheetRows_(sheet) {
   }
 
   return rows;
+}
+
+function backfillHistoryTechnicalFields_(sheet, values, meta) {
+  if (!sheet || !values || !meta) return;
+
+  var idCol = meta.colIndexByCanonical.id;
+  var dateCol = meta.colIndexByCanonical.date;
+  var updatedAtCol = meta.colIndexByCanonical.updatedAt;
+  if (idCol === -1 && dateCol === -1 && updatedAtCol === -1) return;
+
+  var changed = false;
+
+  for (var r = 1; r < values.length; r++) {
+    var row = values[r];
+    if (!rowHasBusinessData_(row, meta)) continue;
+
+    if (idCol !== -1 && !isFilled_(row[idCol])) {
+      row[idCol] = generateId_();
+      sheet.getRange(r + 1, idCol + 1).setValue(row[idCol]);
+      changed = true;
+    }
+
+    if (dateCol !== -1 && !isFilled_(row[dateCol])) {
+      row[dateCol] = displayDateNow_();
+      sheet.getRange(r + 1, dateCol + 1).setValue(row[dateCol]);
+      changed = true;
+    }
+
+    if (updatedAtCol !== -1 && !isFilled_(row[updatedAtCol])) {
+      row[updatedAtCol] = nowIso_();
+      sheet.getRange(r + 1, updatedAtCol + 1).setValue(row[updatedAtCol]);
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    touchSheetRevision_(SHEET_HISTORY);
+  }
 }
 
 function readSheetGrid_(sheet) {
