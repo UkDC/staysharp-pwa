@@ -1963,44 +1963,44 @@ select.predict-select:focus {
 
 @media (min-width: 960px) {
   #empty-history {
-    min-height: clamp(360px, 44vh, 520px);
-    padding: 24px 34px 28px;
+    min-height: clamp(340px, 42vh, 500px);
+    padding: 24px 32px 28px;
   }
 
   #empty-history .empty-state-inner {
-    display: grid;
-    grid-template-columns: minmax(300px, 460px) minmax(280px, 1fr);
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: clamp(24px, 4vw, 56px);
-    width: min(100%, 980px);
+    width: min(100%, 560px);
+    gap: 18px;
   }
 
   #empty-history .empty-state-img {
     width: 100%;
     max-width: 100%;
-    height: clamp(240px, 22vw, 340px);
+    height: clamp(220px, 20vw, 280px);
     object-fit: cover;
-    object-position: center 24%;
+    object-position: center 16%;
     border-radius: 24px;
-    margin: 0;
+    margin: 0 auto;
   }
 
   #empty-history .empty-state-copy {
-    align-items: flex-start;
-    text-align: left;
+    align-items: center;
+    text-align: center;
     gap: 14px;
   }
 
   #empty-history .empty-state-inner h3 {
     margin-top: 0;
-    font-size: clamp(30px, 2.6vw, 42px);
-    line-height: 1.05;
+    font-size: clamp(28px, 2.2vw, 36px);
+    line-height: 1.08;
   }
 
   #empty-history .empty-state-inner p {
-    max-width: 420px;
+    max-width: 520px;
     font-size: 16px;
-    line-height: 1.7;
+    line-height: 1.65;
   }
 }
 
