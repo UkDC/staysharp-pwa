@@ -1,6 +1,6 @@
 // StaySharp Service Worker
 // Auto-versioned: timestamp is injected by deploy script
-const CACHE_VERSION = '1772256005';
+const CACHE_VERSION = '1772256329';
 const CACHE_NAME = `staysharp-${CACHE_VERSION}`;
 const ASSETS = [
     './',
@@ -8,7 +8,6 @@ const ASSETS = [
     './css/style.css',
     './js/app.js',
     './js/knives.js',
-    './data/static_knives.json',
     './manifest.json',
     './favicon.ico',
     './img/icon-192.png',
