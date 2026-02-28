@@ -1193,14 +1193,16 @@ function mergeHistoryRecords(localHistory, cloudHistory, deletedIdsMap = {}) {
     return sanitizeHistoryArray(merged);
 }
 
-function applyCloudDeletionDiff(localRecords, prevCloudIds, currentCloudIds, pendingOpsById) {
+function applyCloudDeletionDiff(localRecords, prevCloudIds, currentCloudIds, pendingOpsById, options = {}) {
     if (!(prevCloudIds instanceof Set) || !(currentCloudIds instanceof Set)) {
-        return { records: localRecords, deletedIds: [] };
+        return { records: localRecords, deletedIds: [], skippedMassDelete: false };
     }
 
+    const allowEmptyCloudDelete = !!options.allowEmptyCloudDelete;
+
     // Safety: if cloud suddenly became empty, skip mass deletion to avoid destructive false positives.
-    if (prevCloudIds.size > 0 && currentCloudIds.size === 0) {
-        return { records: localRecords, deletedIds: [] };
+    if (!allowEmptyCloudDelete && prevCloudIds.size > 0 && currentCloudIds.size === 0) {
+        return { records: localRecords, deletedIds: [], skippedMassDelete: true };
     }
 
     const deletedIds = [];
@@ -1222,7 +1224,7 @@ function applyCloudDeletionDiff(localRecords, prevCloudIds, currentCloudIds, pen
         return false;
     });
 
-    return { records, deletedIds };
+    return { records, deletedIds, skippedMassDelete: false };
 }
 
 const HISTORY_PULL_THRESHOLD = 60;
@@ -1560,7 +1562,14 @@ async function syncHistoryFromCloud(showUI = true) {
 
             if (cloudMeta.initialized) {
                 const prevCloudIds = new Set((cloudMeta.cloudIds || []).map(id => toText(id).trim()).filter(Boolean));
-                const deletionDelta = applyCloudDeletionDiff(mergedHistory, prevCloudIds, currentCloudIds, pendingOpsById);
+                const allowEmptyCloudDelete = toText(historySnapshot.mode).toLowerCase() === 'full';
+                const deletionDelta = applyCloudDeletionDiff(
+                    mergedHistory,
+                    prevCloudIds,
+                    currentCloudIds,
+                    pendingOpsById,
+                    { allowEmptyCloudDelete }
+                );
                 mergedHistory = deletionDelta.records;
                 deletionDelta.deletedIds.forEach((id) => {
                     deletedIdsMap[id] = new Date().toISOString();
@@ -1577,7 +1586,7 @@ async function syncHistoryFromCloud(showUI = true) {
                     showTransientNotice(`Из облака применено удалений: ${deletionDelta.deletedIds.length}.`, 'warn');
                 }
 
-                if (showUI && prevCloudIds.size > 0 && currentCloudIds.size === 0) {
+                if (showUI && deletionDelta.skippedMassDelete) {
                     showTransientNotice('Облако вернуло пустой журнал: массовое удаление локальных записей пропущено для защиты данных.', 'warn');
                 }
             }
