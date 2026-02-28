@@ -660,6 +660,16 @@ function setCloudOutbox(items) {
     safeSetItem(CLOUD_OUTBOX_KEY, JSON.stringify(Array.isArray(items) ? items : []));
 }
 
+function resetHistorySyncRecoveryState() {
+    safeSetItem(CLOUD_OUTBOX_KEY, JSON.stringify([]));
+    safeSetItem(HISTORY_DELETED_IDS_KEY, JSON.stringify({}));
+    safeSetItem(CLOUD_HISTORY_META_KEY, JSON.stringify({
+        initialized: false,
+        cloudIds: [],
+        updatedAt: ''
+    }));
+}
+
 function dropStaleDeleteOpsForExistingCloudIds(existingCloudIds) {
     if (!(existingCloudIds instanceof Set) || existingCloudIds.size === 0) {
         return [];
@@ -1592,7 +1602,30 @@ async function syncHistoryFromCloud(showUI = true) {
         }
         } catch (e) {
             console.error("History sync failed", e);
-            if (showUI) await appAlert('Ошибка сети History: ' + e.message, 'Ошибка синхронизации');
+            const isStackOverflow = /Maximum call stack size exceeded/i.test(toText(e?.message));
+            if (showUI && isStackOverflow) {
+                try {
+                    resetHistorySyncRecoveryState();
+                    const fallbackSnapshot = await fetchCloudHistoryRecords(true);
+                    const fallbackRecords = sanitizeHistoryArray(fallbackSnapshot.records);
+                    safeSetItem(STORAGE_KEY, JSON.stringify(fallbackRecords));
+                    setDeletedIdsMap({});
+                    setCloudOutbox([]);
+                    setCloudHistoryMeta({
+                        initialized: true,
+                        cloudIds: (fallbackSnapshot.cloudIds || []).map(id => toText(id).trim()).filter(Boolean),
+                        updatedAt: toText(fallbackSnapshot.lastUpdatedAt)
+                    });
+                    if (typeof renderHistory === 'function') renderHistory();
+                    showTransientNotice('Локальное состояние журнала восстановлено из облака.', 'success');
+                    success = true;
+                } catch (recoveryError) {
+                    console.error('History recovery sync failed', recoveryError);
+                    await appAlert('Ошибка сети History: ' + recoveryError.message, 'Ошибка синхронизации');
+                }
+            } else if (showUI) {
+                await appAlert('Ошибка сети History: ' + e.message, 'Ошибка синхронизации');
+            }
         }
 
         if (showUI && syncBtn) {
