@@ -2916,6 +2916,35 @@ window.addEventListener('pageshow', bindDbPullToRefresh);
 
 
 
+function bindTapAction(button, handler) {
+    if (!button || typeof handler !== 'function') return;
+
+    let lastTapAt = 0;
+    const invoke = (event) => {
+        const now = Date.now();
+        if (now - lastTapAt < SAVE_EVENT_DEDUP_MS) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            return;
+        }
+        lastTapAt = now;
+
+        if (event) {
+            if (event.type === 'touchend') {
+                event.preventDefault();
+            }
+            event.stopPropagation();
+        }
+
+        handler();
+    };
+
+    button.addEventListener('click', invoke);
+    button.addEventListener('touchend', invoke, { passive: false });
+}
+
 function renderHistory() {
     const history = getHistory();
     const tbody = document.querySelector('#history-table tbody');
@@ -2949,10 +2978,14 @@ function renderHistory() {
                 <td style="color: var(--success); font-weight: 600;">${item.bess || '-'}</td>
                 <td style="color: var(--text-secondary); max-width: 180px; font-size: 12px; white-space: pre-wrap; word-break: break-word;">${item.comments || '-'}</td>
                 <td>
-                    <button class="del-btn" style="margin-bottom: 4px;" onclick="window.editRecord(${index})">Изменить</button><br>
-                    <button class="del-btn" onclick="window.deleteRecord(${index})">Удалить</button>
+                    <button class="del-btn history-edit-btn" style="margin-bottom: 4px;">Изменить</button><br>
+                    <button class="del-btn history-delete-btn">Удалить</button>
                 </td>
             `;
+            const editBtn = tr.querySelector('.history-edit-btn');
+            const deleteBtn = tr.querySelector('.history-delete-btn');
+            bindTapAction(editBtn, () => window.editRecord(index));
+            bindTapAction(deleteBtn, () => window.deleteRecord(index));
             tbody.appendChild(tr);
         });
     }
@@ -3109,11 +3142,11 @@ if (modal) {
 }
 
 if (appDialogConfirm) {
-    appDialogConfirm.addEventListener('click', () => closeAppDialog(true));
+    bindTapAction(appDialogConfirm, () => closeAppDialog(true));
 }
 
 if (appDialogCancel) {
-    appDialogCancel.addEventListener('click', () => closeAppDialog(false));
+    bindTapAction(appDialogCancel, () => closeAppDialog(false));
 }
 
 if (appDialog) {
