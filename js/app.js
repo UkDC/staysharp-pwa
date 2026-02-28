@@ -1303,15 +1303,19 @@ async function syncHistoryFromCloud(showUI = true) {
     try {
         await flushCloudOutbox();
         const cloudMeta = getCloudHistoryMeta();
+        const useMetaCheck = !showUI;
         let historySheetMeta = null;
 
-        try {
-            historySheetMeta = await fetchCloudSheetMeta('History');
-        } catch (metaError) {
-            console.warn('History meta check unavailable, falling back to full sync:', metaError.message);
+        if (useMetaCheck) {
+            try {
+                historySheetMeta = await fetchCloudSheetMeta('History');
+            } catch (metaError) {
+                console.warn('History meta check unavailable, falling back to full sync:', metaError.message);
+            }
         }
 
         const skipHeavyFetch = !!(
+            useMetaCheck &&
             cloudMeta.initialized &&
             historySheetMeta &&
             !historySheetMeta.legacyPayload &&
@@ -1462,15 +1466,19 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
     let success = false;
     try {
         const dbMeta = getCloudDatabaseMeta();
+        const useMetaCheck = !!isAutoSync;
         let databaseSheetMeta = null;
 
-        try {
-            databaseSheetMeta = await fetchCloudSheetMeta('Database');
-        } catch (metaError) {
-            console.warn('Database meta check unavailable, falling back to full sync:', metaError.message);
+        if (useMetaCheck) {
+            try {
+                databaseSheetMeta = await fetchCloudSheetMeta('Database');
+            } catch (metaError) {
+                console.warn('Database meta check unavailable, falling back to full sync:', metaError.message);
+            }
         }
 
         const skipHeavyFetch = !!(
+            useMetaCheck &&
             dbMeta.initialized &&
             databaseSheetMeta &&
             !databaseSheetMeta.legacyPayload &&
