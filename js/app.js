@@ -1498,7 +1498,7 @@ async function syncHistoryFromCloud(showUI = true) {
             }
         } else {
             const localHistory = getHistory();
-            const historySnapshot = (historySheetMeta && Array.isArray(historySheetMeta.legacyPayload))
+            let historySnapshot = (historySheetMeta && Array.isArray(historySheetMeta.legacyPayload))
                 ? (() => {
                     const records = sanitizeHistoryArray(historySheetMeta.legacyPayload);
                     return {
@@ -1509,10 +1509,8 @@ async function syncHistoryFromCloud(showUI = true) {
                     };
                 })()
                 : await fetchCloudHistoryRecords(showUI);
-            const cloudHistory = historySnapshot.records;
-            const resolvedHistoryMetaUpdatedAt = toText(historySheetMeta?.updatedAt || historySnapshot.lastUpdatedAt || cloudMeta.updatedAt);
             let deletedIdsMap = pruneDeletedIdsMap(getDeletedIdsMap());
-            const currentCloudIds = new Set((historySnapshot.cloudIds || []).map(id => toText(id).trim()).filter(Boolean));
+            let currentCloudIds = new Set((historySnapshot.cloudIds || []).map(id => toText(id).trim()).filter(Boolean));
             let staleDeleteIds = [];
 
             if (showUI) {
@@ -1522,7 +1520,25 @@ async function syncHistoryFromCloud(showUI = true) {
                 }
             }
 
-            const pendingOpsById = getPendingHistoryOpsById();
+            let pendingOpsById = getPendingHistoryOpsById();
+
+            if (toText(historySnapshot.mode).toLowerCase() === 'delta') {
+                const localIds = new Set(localHistory.map(item => toText(item.id).trim()).filter(Boolean));
+                const hasMissingCloudRecords = Array.from(currentCloudIds).some((id) => {
+                    if (localIds.has(id)) return false;
+                    const pending = pendingOpsById.get(id);
+                    return !(pending && pending.action === 'delete');
+                });
+
+                if (hasMissingCloudRecords) {
+                    historySnapshot = await fetchCloudHistoryRecords(true);
+                    currentCloudIds = new Set((historySnapshot.cloudIds || []).map(id => toText(id).trim()).filter(Boolean));
+                    pendingOpsById = getPendingHistoryOpsById();
+                }
+            }
+
+            const cloudHistory = historySnapshot.records;
+            const resolvedHistoryMetaUpdatedAt = toText(historySheetMeta?.updatedAt || historySnapshot.lastUpdatedAt || cloudMeta.updatedAt);
 
             // Manual sync acts as a recovery path: if a record still exists in cloud and there is
             // no pending local delete for it, an old local tombstone should not keep hiding it forever.
