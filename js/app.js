@@ -1500,6 +1500,7 @@ async function syncHistoryFromCloud(showUI = true) {
             }
         } else {
             const localHistory = getHistory();
+            const prevCloudIds = new Set((cloudMeta.cloudIds || []).map(id => toText(id).trim()).filter(Boolean));
             let historySnapshot = (historySheetMeta && Array.isArray(historySheetMeta.legacyPayload))
                 ? (() => {
                     const records = sanitizeHistoryArray(historySheetMeta.legacyPayload);
@@ -1531,8 +1532,9 @@ async function syncHistoryFromCloud(showUI = true) {
                     const pending = pendingOpsById.get(id);
                     return !(pending && pending.action === 'delete');
                 });
+                const needsEmptyCloudConfirmation = prevCloudIds.size > 0 && currentCloudIds.size === 0;
 
-                if (hasMissingCloudRecords) {
+                if (hasMissingCloudRecords || needsEmptyCloudConfirmation) {
                     historySnapshot = await fetchCloudHistoryRecords(true);
                     currentCloudIds = new Set((historySnapshot.cloudIds || []).map(id => toText(id).trim()).filter(Boolean));
                     pendingOpsById = getPendingHistoryOpsById();
@@ -1559,9 +1561,9 @@ async function syncHistoryFromCloud(showUI = true) {
             }
 
             let mergedHistory = mergeHistoryRecords(localHistory, cloudHistory, deletedIdsMap);
+            let metaCloudIds = Array.from(currentCloudIds);
 
             if (cloudMeta.initialized) {
-                const prevCloudIds = new Set((cloudMeta.cloudIds || []).map(id => toText(id).trim()).filter(Boolean));
                 const allowEmptyCloudDelete = toText(historySnapshot.mode).toLowerCase() === 'full';
                 const deletionDelta = applyCloudDeletionDiff(
                     mergedHistory,
@@ -1589,6 +1591,10 @@ async function syncHistoryFromCloud(showUI = true) {
                 if (showUI && deletionDelta.skippedMassDelete) {
                     showTransientNotice('Облако вернуло пустой журнал: массовое удаление локальных записей пропущено для защиты данных.', 'warn');
                 }
+
+                if (deletionDelta.skippedMassDelete) {
+                    metaCloudIds = Array.from(prevCloudIds);
+                }
             }
 
             // If a newer cloud record reappears, clear local deletion tombstone for that ID.
@@ -1607,7 +1613,7 @@ async function syncHistoryFromCloud(showUI = true) {
             setDeletedIdsMap(deletedIdsMap);
             setCloudHistoryMeta({
                 initialized: true,
-                cloudIds: Array.from(currentCloudIds),
+                cloudIds: metaCloudIds,
                 updatedAt: resolvedHistoryMetaUpdatedAt || getHistorySyncWatermark(cloudHistory, historySnapshot.lastUpdatedAt || cloudMeta.updatedAt)
             });
 
