@@ -1963,25 +1963,25 @@ select.predict-select:focus {
 
 @media (min-width: 960px) {
   #empty-history {
-    min-height: clamp(340px, 42vh, 500px);
-    padding: 24px 32px 28px;
+    min-height: 0;
+    padding: 22px 28px 26px;
   }
 
   #empty-history .empty-state-inner {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: min(100%, 560px);
-    gap: 18px;
+    width: min(100%, 500px);
+    gap: 16px;
   }
 
   #empty-history .empty-state-img {
-    width: 100%;
+    width: min(100%, 420px);
     max-width: 100%;
-    height: clamp(220px, 20vw, 280px);
+    height: clamp(150px, 14vw, 190px);
     object-fit: cover;
-    object-position: center 16%;
-    border-radius: 24px;
+    object-position: center top;
+    border-radius: 20px;
     margin: 0 auto;
   }
 
@@ -1993,14 +1993,14 @@ select.predict-select:focus {
 
   #empty-history .empty-state-inner h3 {
     margin-top: 0;
-    font-size: clamp(28px, 2.2vw, 36px);
+    font-size: clamp(26px, 2vw, 34px);
     line-height: 1.08;
   }
 
   #empty-history .empty-state-inner p {
-    max-width: 520px;
-    font-size: 16px;
-    line-height: 1.65;
+    max-width: 460px;
+    font-size: 15px;
+    line-height: 1.6;
   }
 }
 
