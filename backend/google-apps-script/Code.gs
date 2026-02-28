@@ -42,20 +42,92 @@ var FIELD_ALIASES = {
   comments: ['Comments', 'comments', 'comment', 'комментарии']
 };
 
+function getParam_(e, key, fallback) {
+  if (e && e.parameter && e.parameter[key] !== undefined && e.parameter[key] !== null) {
+    return String(e.parameter[key]);
+  }
+  return fallback === undefined ? '' : fallback;
+}
+
+function isAllowedSheet_(allowedSheets, sheetName) {
+  return allowedSheets.indexOf(String(sheetName || '')) !== -1;
+}
+
+function readSheetRows_(sheet) {
+  var values = sheet.getDataRange().getValues();
+  if (!values || values.length < 2) return [];
+
+  var headers = values[0].map(function (h) { return String(h); });
+  var rows = [];
+
+  for (var i = 1; i < values.length; i++) {
+    var row = values[i];
+    if (!row.some(isFilled_)) continue;
+
+    var obj = {};
+    for (var j = 0; j < headers.length; j++) {
+      obj[headers[j]] = row[j];
+    }
+    rows.push(obj);
+  }
+
+  return rows;
+}
+
+function readSheetGrid_(sheet) {
+  var values = sheet.getDataRange().getValues();
+  if (!values || values.length === 0) return null;
+
+  var headers = values[0].map(function (h) { return String(h); });
+  var meta = buildHeaderMeta_(headers);
+
+  return {
+    values: values,
+    headers: headers,
+    meta: meta
+  };
+}
+
+function ensureRecordDefaults_(record) {
+  var normalized = normalizeRecord_(record || {});
+  if (!normalized.id) normalized.id = generateId_();
+  if (!normalized.date) normalized.date = displayDateNow_();
+  if (!normalized.updatedAt) normalized.updatedAt = nowIso_();
+  return normalized;
+}
+
+function buildMappedRowData_(headers, meta, record) {
+  return headers.map(function (_header, colIndex) {
+    var canonical = meta.canonicalByCol[colIndex];
+    var value = canonical ? valueByCanonical_(record, canonical) : '';
+    return sanitizeInput_(value);
+  });
+}
+
+function rowHasBusinessData_(rowValues, meta) {
+  if (!rowValues || !meta) return false;
+  for (var c = 0; c < rowValues.length; c++) {
+    var canonical = meta.canonicalByCol[c];
+    if (canonical === 'id' || canonical === 'date' || canonical === 'updatedAt') continue;
+    if (isFilled_(rowValues[c])) return true;
+  }
+  return false;
+}
+
 // ====== PUBLIC ENDPOINTS ======
 function doGet(e) {
   try {
-    var token = (e && e.parameter && e.parameter.token) ? e.parameter.token : '';
+    var token = getParam_(e, 'token', '');
     if (!isAuthorized_(token)) {
       return jsonOut_({ error: 'Unauthorized: Invalid or missing token' });
     }
 
-    var sheetName = (e && e.parameter && e.parameter.sheet) ? e.parameter.sheet : '';
-    if (ALLOWED_READ_SHEETS.indexOf(sheetName) === -1) {
+    var sheetName = getParam_(e, 'sheet', '');
+    if (!isAllowedSheet_(ALLOWED_READ_SHEETS, sheetName)) {
       return jsonOut_({ error: 'Forbidden: Not allowed to read this sheet' });
     }
-    var metaOnly = (e && e.parameter && e.parameter.meta) ? String(e.parameter.meta) === '1' : false;
-    var updatedAfter = (e && e.parameter && e.parameter.updatedAfter) ? e.parameter.updatedAfter : '';
+    var metaOnly = getParam_(e, 'meta', '') === '1';
+    var updatedAfter = getParam_(e, 'updatedAfter', '');
 
     if (metaOnly) {
       var metaPayload = getSheetMetaPayload_(sheetName);
@@ -78,8 +150,8 @@ function doGet(e) {
       return jsonOut_({ error: 'Sheet not found: ' + sheetName });
     }
 
-    var values = sheet.getDataRange().getValues();
-    if (values.length < 2) {
+    var rows = readSheetRows_(sheet);
+    if (rows.length === 0) {
       if (sheetName === SHEET_HISTORY && updatedAfter) {
         return jsonOut_(buildHistoryDeltaPayload_([], updatedAfter));
       }
@@ -87,26 +159,11 @@ function doGet(e) {
       return jsonOut_([]);
     }
 
-    var headers = values[0].map(function (h) { return String(h); });
-    var out = [];
-
-    for (var i = 1; i < values.length; i++) {
-      var row = values[i];
-      var hasData = row.some(isFilled_);
-      if (!hasData) continue;
-
-      var obj = {};
-      for (var j = 0; j < headers.length; j++) {
-        obj[headers[j]] = row[j];
-      }
-      out.push(obj);
-    }
-
-    var payload = JSON.stringify(out);
+    var payload = JSON.stringify(rows);
     ensureSheetRevision_(sheetName);
     putCachedSheetPayload_(sheetName, payload);
     if (sheetName === SHEET_HISTORY && updatedAfter) {
-      return jsonOut_(buildHistoryDeltaPayload_(out, updatedAfter));
+      return jsonOut_(buildHistoryDeltaPayload_(rows, updatedAfter));
     }
     return jsonTextOut_(payload);
   } catch (err) {
@@ -130,7 +187,7 @@ function doPost(e) {
     }
 
     var sheetName = String(requestData.sheet || '');
-    if (ALLOWED_WRITE_SHEETS.indexOf(sheetName) === -1) {
+    if (!isAllowedSheet_(ALLOWED_WRITE_SHEETS, sheetName)) {
       return textOut_('Error: Forbidden sheet');
     }
 
@@ -140,31 +197,22 @@ function doPost(e) {
     }
 
     var action = String(requestData.action || '').toLowerCase();
-    var record = normalizeRecord_(requestData.record || {});
+    var record = ensureRecordDefaults_(requestData.record || {});
 
-    if (!record.id) record.id = generateId_();
-    if (!record.date) record.date = displayDateNow_();
-    if (!record.updatedAt) record.updatedAt = nowIso_();
-
-    var values = sheet.getDataRange().getValues();
-    if (!values || values.length === 0) {
+    var grid = readSheetGrid_(sheet);
+    if (!grid) {
       return textOut_('Error: Header row is missing');
     }
-
-    var headers = values[0].map(function (h) { return String(h); });
-    var meta = buildHeaderMeta_(headers);
+    var values = grid.values;
+    var headers = grid.headers;
+    var meta = grid.meta;
     var idColIndex = meta.colIndexByCanonical.id;
     var updatedAtColIndex = meta.colIndexByCanonical.updatedAt;
 
     if (action === 'add' || action === 'update') {
-      var rowData = headers.map(function (_h, colIndex) {
-        var canonical = meta.canonicalByCol[colIndex];
-        var v = canonical ? valueByCanonical_(record, canonical) : '';
-        return sanitizeInput_(v);
-      });
+      var rowData = buildMappedRowData_(headers, meta, record);
 
-      var hasMappedData = rowData.some(isFilled_);
-      if (!hasMappedData) {
+      if (!rowData.some(isFilled_)) {
         return textOut_('Error: Empty mapped row');
       }
 
@@ -250,18 +298,8 @@ function onEdit(e) {
     var updatedAtCol = meta.colIndexByCanonical.updatedAt;
     if (idCol === -1 || dateCol === -1 || updatedAtCol === -1) return;
 
-    // Check if row has business data (excluding technical fields)
     var rowValues = sh.getRange(row, 1, 1, sh.getLastColumn()).getValues()[0];
-    var hasBusinessData = false;
-    for (var c = 0; c < rowValues.length; c++) {
-      var canon = meta.canonicalByCol[c];
-      if (canon === 'id' || canon === 'date' || canon === 'updatedAt') continue;
-      if (isFilled_(rowValues[c])) {
-        hasBusinessData = true;
-        break;
-      }
-    }
-    if (!hasBusinessData) return;
+    if (!rowHasBusinessData_(rowValues, meta)) return;
 
     if (!isFilled_(rowValues[idCol])) {
       sh.getRange(row, idCol + 1).setValue(generateId_());
