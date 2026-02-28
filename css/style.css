@@ -1954,6 +1954,35 @@ select.predict-select:focus {
   margin: 0 auto;
 }
 
+@media (min-width: 960px) {
+  #empty-history {
+    min-height: clamp(360px, 46vh, 560px);
+    padding: 24px 28px 30px;
+  }
+
+  #empty-history .empty-state-inner {
+    width: min(100%, 620px);
+    gap: 14px;
+  }
+
+  #empty-history .empty-state-img {
+    width: min(100%, 460px);
+    max-width: none;
+    height: clamp(220px, 24vw, 320px);
+    object-fit: cover;
+    object-position: center 24%;
+    border-radius: 24px;
+  }
+
+  #empty-history .empty-state-inner h3 {
+    margin-top: 2px;
+  }
+
+  #empty-history .empty-state-inner p {
+    max-width: 700px;
+  }
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
