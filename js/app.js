@@ -609,6 +609,8 @@ const CLOUD_PULL_INTERVAL_MS = 30000;
 let cloudQueueFlushPromise = null;
 let cloudPushIntervalId = null;
 let cloudPullIntervalId = null;
+let historySyncPromise = null;
+let databaseSyncPromise = null;
 
 function getCloudOutbox() {
     const raw = safeGetItem(CLOUD_OUTBOX_KEY);
@@ -1299,8 +1301,40 @@ async function syncHistoryFromCloud(showUI = true) {
         setHistoryPullIndicatorState('loading');
     }
 
-    let success = false;
-    try {
+    if (historySyncPromise) {
+        let reusedSuccess = false;
+        try {
+            reusedSuccess = await historySyncPromise;
+        } catch (e) {
+            reusedSuccess = false;
+        }
+
+        if (showUI && syncBtn) {
+            setSidebarToolButtonState(syncBtn, reusedSuccess ? 'success' : 'error', SYNC_ACTION_LABEL);
+            setTimeout(() => {
+                setSidebarToolButtonState(syncBtn, 'default', SYNC_ACTION_LABEL);
+            }, 2000);
+        }
+
+        if (showUI && !syncBtn && historyPullState.isSyncing) {
+            if (isHistoryViewActive()) {
+                setHistoryPullIndicatorState(reusedSuccess ? 'success' : 'error');
+                setTimeout(() => {
+                    historyPullState.isSyncing = false;
+                    setHistoryPullIndicatorState('hidden');
+                }, 250);
+            } else {
+                historyPullState.isSyncing = false;
+                setHistoryPullIndicatorState('hidden');
+            }
+        }
+
+        return reusedSuccess;
+    }
+
+    historySyncPromise = (async () => {
+        let success = false;
+        try {
         await flushCloudOutbox();
         const cloudMeta = getCloudHistoryMeta();
         const useMetaCheck = !showUI;
@@ -1400,29 +1434,38 @@ async function syncHistoryFromCloud(showUI = true) {
             }
             success = true;
         }
-    } catch (e) {
-        console.error("History sync failed", e);
-        if (showUI) await appAlert('Ошибка сети History: ' + e.message, 'Ошибка синхронизации');
-    }
+        } catch (e) {
+            console.error("History sync failed", e);
+            if (showUI) await appAlert('Ошибка сети History: ' + e.message, 'Ошибка синхронизации');
+        }
 
-    if (showUI && syncBtn) {
-        setSidebarToolButtonState(syncBtn, success ? 'success' : 'error', SYNC_ACTION_LABEL);
-        setTimeout(() => {
-            setSidebarToolButtonState(syncBtn, 'default', SYNC_ACTION_LABEL);
-        }, 2000);
-    }
-
-    if (showUI && !syncBtn && historyPullState.isSyncing) {
-        if (isHistoryViewActive()) {
-            setHistoryPullIndicatorState(success ? 'success' : 'error');
+        if (showUI && syncBtn) {
+            setSidebarToolButtonState(syncBtn, success ? 'success' : 'error', SYNC_ACTION_LABEL);
             setTimeout(() => {
+                setSidebarToolButtonState(syncBtn, 'default', SYNC_ACTION_LABEL);
+            }, 2000);
+        }
+
+        if (showUI && !syncBtn && historyPullState.isSyncing) {
+            if (isHistoryViewActive()) {
+                setHistoryPullIndicatorState(success ? 'success' : 'error');
+                setTimeout(() => {
+                    historyPullState.isSyncing = false;
+                    setHistoryPullIndicatorState('hidden');
+                }, 250);
+            } else {
                 historyPullState.isSyncing = false;
                 setHistoryPullIndicatorState('hidden');
-            }, 250);
-        } else {
-            historyPullState.isSyncing = false;
-            setHistoryPullIndicatorState('hidden');
+            }
         }
+
+        return success;
+    })();
+
+    try {
+        return await historySyncPromise;
+    } finally {
+        historySyncPromise = null;
     }
 }
 
@@ -1463,8 +1506,38 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
         setDbPullIndicatorState('loading');
     }
 
-    let success = false;
-    try {
+    if (databaseSyncPromise) {
+        let reusedSuccess = false;
+        try {
+            reusedSuccess = await databaseSyncPromise;
+        } catch (e) {
+            reusedSuccess = false;
+        }
+
+        if (syncDbBtn && !isAutoSync) {
+            setSidebarToolButtonState(syncDbBtn, reusedSuccess ? 'success' : 'error', SYNC_ACTION_LABEL);
+            setTimeout(() => {
+                setSidebarToolButtonState(syncDbBtn, 'default', SYNC_ACTION_LABEL);
+            }, 2000);
+        } else if (!isAutoSync && dbPullState.isSyncing) {
+            if (isDbViewActive()) {
+                setDbPullIndicatorState(reusedSuccess ? 'success' : 'error');
+                setTimeout(() => {
+                    dbPullState.isSyncing = false;
+                    setDbPullIndicatorState('hidden');
+                }, 250);
+            } else {
+                dbPullState.isSyncing = false;
+                setDbPullIndicatorState('hidden');
+            }
+        }
+
+        return reusedSuccess;
+    }
+
+    databaseSyncPromise = (async () => {
+        let success = false;
+        try {
         const dbMeta = getCloudDatabaseMeta();
         const useMetaCheck = !!isAutoSync;
         let databaseSheetMeta = null;
@@ -1528,36 +1601,45 @@ async function syncDatabaseFromCloud(isAutoSync = false) {
                 updatedAt: toText(databaseSheetMeta?.updatedAt || dbMeta.updatedAt || new Date().toISOString())
             });
         }
-    } catch (e) {
-        console.error("Database sync failed", e);
-        if (!isAutoSync) await appAlert('Ошибка сети DB: ' + e.message, 'Ошибка синхронизации');
-    }
-
-    // Also sync History during auto-sync
-    if (isAutoSync) {
-        try {
-            await syncHistoryFromCloud(false); // don't affect button UI during auto-sync if viewed
         } catch (e) {
-            console.error("History sync wrapper failed", e);
+            console.error("Database sync failed", e);
+            if (!isAutoSync) await appAlert('Ошибка сети DB: ' + e.message, 'Ошибка синхронизации');
         }
-    }
 
-    if (syncDbBtn && !isAutoSync) {
-        setSidebarToolButtonState(syncDbBtn, success ? 'success' : 'error', SYNC_ACTION_LABEL);
-        setTimeout(() => {
-            setSidebarToolButtonState(syncDbBtn, 'default', SYNC_ACTION_LABEL);
-        }, 2000);
-    } else if (!isAutoSync && dbPullState.isSyncing) {
-        if (isDbViewActive()) {
-            setDbPullIndicatorState(success ? 'success' : 'error');
+        // Also sync History during auto-sync
+        if (isAutoSync) {
+            try {
+                await syncHistoryFromCloud(false); // don't affect button UI during auto-sync if viewed
+            } catch (e) {
+                console.error("History sync wrapper failed", e);
+            }
+        }
+
+        if (syncDbBtn && !isAutoSync) {
+            setSidebarToolButtonState(syncDbBtn, success ? 'success' : 'error', SYNC_ACTION_LABEL);
             setTimeout(() => {
+                setSidebarToolButtonState(syncDbBtn, 'default', SYNC_ACTION_LABEL);
+            }, 2000);
+        } else if (!isAutoSync && dbPullState.isSyncing) {
+            if (isDbViewActive()) {
+                setDbPullIndicatorState(success ? 'success' : 'error');
+                setTimeout(() => {
+                    dbPullState.isSyncing = false;
+                    setDbPullIndicatorState('hidden');
+                }, 250);
+            } else {
                 dbPullState.isSyncing = false;
                 setDbPullIndicatorState('hidden');
-            }, 250);
-        } else {
-            dbPullState.isSyncing = false;
-            setDbPullIndicatorState('hidden');
+            }
         }
+
+        return success;
+    })();
+
+    try {
+        return await databaseSyncPromise;
+    } finally {
+        databaseSyncPromise = null;
     }
 }
 
