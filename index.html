@@ -15,7 +15,7 @@
     <link rel="icon" href="/staysharp-pwa/favicon.ico">
     <link rel="shortcut icon" href="/staysharp-pwa/favicon.ico">
     <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
-    <link rel="stylesheet" href="css/style.css?v=1772284302">
+    <link rel="stylesheet" href="css/style.css?v=1772284718">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -361,9 +361,14 @@
 
             <!-- VIEW: HISTORY -->
             <section id="history-view" class="view hidden">
-                <header class="section-header">
+                <header class="section-header flex-between">
                     <div>
                         <h1>Журнал Заточек</h1>
+                    </div>
+                    <div class="section-header-actions">
+                        <button id="btn-sync" class="btn-secondary status-action-btn" type="button">
+                            Sync
+                        </button>
                     </div>
                 </header>
 
@@ -411,9 +416,14 @@
 
             <!-- VIEW: DATABASE -->
             <section id="db-view" class="view hidden">
-                <header class="section-header">
+                <header class="section-header flex-between">
                     <div>
                         <h1>Справочник ножей</h1>
+                    </div>
+                    <div class="section-header-actions">
+                        <button id="btn-db-sync" class="btn-secondary status-action-btn" type="button">
+                            Sync
+                        </button>
                     </div>
                 </header>
 
@@ -584,7 +594,7 @@
 
     <!-- Scripts -->
     <script src="js/knives.js?v=124"></script>
-    <script src="js/app.js?v=1772284302"></script>
+    <script src="js/app.js?v=1772284718"></script>
     <script>
         const takeSessionFlag = (key) => {
             try {

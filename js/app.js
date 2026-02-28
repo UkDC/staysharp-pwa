@@ -1689,7 +1689,7 @@ async function syncHistoryFromCloud(showUI = true) {
     }
 }
 
-const SYNC_ACTION_LABEL = 'dbSync';
+const SYNC_ACTION_LABEL = 'Sync';
 const SIDEBAR_RESET_LABEL = 'clearCache';
 const SIDEBAR_HARD_REFRESH_LABEL = 'update PWA';
 
@@ -2779,6 +2779,28 @@ function bindHardRefreshButton() {
     refreshBtn.dataset.bound = '1';
 }
 
+function bindHistorySyncButton() {
+    const syncBtn = document.getElementById('btn-sync');
+    if (!syncBtn || syncBtn.dataset.bound === '1') return;
+
+    bindTapAction(syncBtn, () => {
+        void syncHistoryFromCloud(true);
+    });
+
+    syncBtn.dataset.bound = '1';
+}
+
+function bindDbSyncButton() {
+    const syncDbBtn = document.getElementById('btn-db-sync');
+    if (!syncDbBtn || syncDbBtn.dataset.bound === '1') return;
+
+    bindTapAction(syncDbBtn, () => {
+        void syncDatabaseFromCloud(false);
+    });
+
+    syncDbBtn.dataset.bound = '1';
+}
+
 function bindHistoryPullToRefresh() {
     const contentArea = document.querySelector('.content-area');
     if (!contentArea || contentArea.dataset.historyPullBound === '1') return;
@@ -2922,10 +2944,14 @@ function bindDbPullToRefresh() {
 window.resetDatabaseCache = resetDatabaseCacheWithDefaults;
 bindResetDbCacheButton();
 bindHardRefreshButton();
+bindHistorySyncButton();
+bindDbSyncButton();
 bindHistoryPullToRefresh();
 bindDbPullToRefresh();
 window.addEventListener('pageshow', bindResetDbCacheButton);
 window.addEventListener('pageshow', bindHardRefreshButton);
+window.addEventListener('pageshow', bindHistorySyncButton);
+window.addEventListener('pageshow', bindDbSyncButton);
 window.addEventListener('pageshow', bindHistoryPullToRefresh);
 window.addEventListener('pageshow', bindDbPullToRefresh);
 
